@@ -1,0 +1,19 @@
+{{ define "title" }}Contact{{ end }}
+
+{{ define "content" }}
+
+<h1>Recipes List</h1>
+<div>
+<ul>
+    {{ range . }}
+    <li>
+        <div>
+            {{ .Name }}
+            <image src="/images/original/{{.Name }}"></image>
+        </div>
+    </li>
+    {{ end }}
+</ul>
+</div>
+
+{{ end }}
