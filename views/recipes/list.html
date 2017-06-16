@@ -8,8 +8,7 @@
     {{ range . }}
     <li>
         <div>
-            {{ .Name }}
-            <image src="/images/original/{{.Name }}"></image>
+            <a href="/recipes/{{.Id}}">{{ .Name }}</a>
         </div>
     </li>
     {{ end }}

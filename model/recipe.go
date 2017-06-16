@@ -8,12 +8,13 @@ import (
 type Recipe struct {
 	Id uint
 	Name string
+	Filepath string
 }
 
 func GetAllRecipes(db *sql.DB) []Recipe {
 	recipes := make([]Recipe, 0, 10)
 	db.Begin()
-	rows, err := db.Query("select name from recipes")
+	rows, err := db.Query("select id, name, filepath from recipes")
 
 	if err != nil {
 		log.Fatal(err)
@@ -21,7 +22,7 @@ func GetAllRecipes(db *sql.DB) []Recipe {
 
 	for rows.Next() {
 		var r Recipe
-		if err := rows.Scan(&r.Name); err != nil {
+		if err := rows.Scan(&r.Id, &r.Name, &r.Filepath); err != nil {
 			log.Fatal(err)
 		} else {
 			recipes = append(recipes, r)
@@ -51,4 +52,13 @@ func Insert(db *sql.DB, name string) {
 		log.Fatal(err)
 	}
 	tx.Commit()	
+}
+
+func GetRecipe(db *sql.DB, id string) Recipe {
+	var recipe Recipe
+	err := db.QueryRow("select ID, NAME, FILEPATH from RECIPES where ID = :id", id).Scan(&recipe.Id, &recipe.Name, &recipe.Filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return recipe
 }

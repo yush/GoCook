@@ -1,0 +1,13 @@
+{{ define "title" }}Contact{{ end }}
+
+{{ define "content" }}
+
+<h1>New recipe</h1>
+<div>
+    <form action="/recipes" method="PUT">
+        <input id="name" name="name" />
+        <button formaction="/recipes" formmethod="POST">add</button>
+    </form>
+</div>
+
+{{ end }}
