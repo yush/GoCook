@@ -1,17 +1,18 @@
 package main
 
 import (
+	"net/http"
 	"database/sql"
-	_ "fmt"
 	"github.com/julienschmidt/httprouter"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/yush/GoCook/model"
 	"html/template"
 	"io/ioutil"
+	 "io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
+	"fmt"
 )
 
 //var schemaDecoder = schema.NewDecoder()
@@ -20,7 +21,7 @@ import (
 var templates map[string]*template.Template
 
 func BaseDir() string {
-	DirName := "/home/clem/go/src/github.com/yush/GoCook/views"
+	DirName := "views"
 	Path := filepath.Dir(DirName)
 	return Path
 }
@@ -51,20 +52,6 @@ func main() {
 func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 
 	if err := templates["index"].Execute(res, nil); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func AboutRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-
-	if err := templates["about"].Execute(res, nil); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func ContactRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-
-	if err := templates["contact"].Execute(res, nil); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -115,15 +102,30 @@ func GetNewRecipeHandler(res http.ResponseWriter, req *http.Request, _ httproute
 }
 
 func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.Params) {
+	fmt.Print(req.FormValue("name"))
+
+	file, handler, err := req.FormFile("uploadfile")
+	if err != nil  {
+		log.Fatal(err)
+	}
+	   f, err := os.Create(DIR_ORIGINAL+ handler.Filename)
+           if err != nil {
+               fmt.Println(err)
+               return
+           }
+           defer f.Close()
+	_, err = io.Copy(f, file) // copy the image
+
+	if err != nil {
+	 log.Fatal("Something was wrong")
+	}
 	db, err := sql.Open("sqlite3", BaseDir()+"/db/gocook.db3")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-
-	req.ParseForm()
-	model.Insert(db, req.Form.Get("name"))
+	model.Insert(db, req.Form.Get("name"), handler.Filename)
 	http.Redirect(res, req, "/recipes", 301)
 }
 
@@ -133,8 +135,8 @@ func checkErr(err error) {
 	}
 }
 
-const DIR_IMPORT = "/db/images/import/"
-const DIR_ORIGINAL = "/db/images/original/"
+const DIR_IMPORT = "db/images/import/"
+const DIR_ORIGINAL = "db/images/original/"
 
 func ImportRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	db, err := sql.Open("sqlite3", BaseDir()+"/db/gocook.db3")
@@ -159,7 +161,7 @@ func ImportRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 
 		if IsExisting == false {
 
-			model.Insert(db, file.Name())
+			model.Insert(db, file.Name(), file.Name())
 			// Read all content of src to data
 			data, err := ioutil.ReadFile(BaseDir() + DIR_IMPORT + file.Name())
 			checkErr(err)

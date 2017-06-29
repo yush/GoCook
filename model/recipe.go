@@ -35,7 +35,7 @@ func GetAllRecipes(db *sql.DB) []Recipe {
 	return recipes
 }
 
-func Insert(db *sql.DB, name string) {
+func Insert(db *sql.DB, name string, filename string) {
 	// INSERT
 	tx, err := db.Begin()
 	if err != nil {
@@ -47,7 +47,7 @@ func Insert(db *sql.DB, name string) {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(name, name)
+	_, err = stmt.Exec(name, filename)
 	if err != nil {
 		log.Fatal(err)
 	}
