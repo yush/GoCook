@@ -4,15 +4,19 @@
 
 <h1>Recipes List</h1>
 <div>
-<ul>
-    {{ range . }}
-    <li>
-        <div>
-            <a href="/recipes/{{.Id}}">{{ .Name }}</a>
-        </div>
-    </li>
-    {{ end }}
-</ul>
+    <form method="post" action="/deleterecipes">
+        <ul>
+            {{ range . }}
+            <li>
+                <div>
+                    <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>
+                    <a href="/recipes/{{.Id}}">{{ .Name }}</a>
+                </div>
+            </li>
+            {{ end }}
+        </ul>
+        <input type="submit" value="delete selected"/>
+    </form>
 </div>
 
 {{ end }}
