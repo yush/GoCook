@@ -1,0 +1,13 @@
+{{ define "title" }}New category{{ end }}
+
+{{ define "content" }}
+
+<h1>New category</h1>
+<div>
+    <form action="/categories" method="POST">
+        <input id="name" name="name"/>
+        <input type="submit" value="submit">
+    </form>
+</div>
+
+{{ end }}

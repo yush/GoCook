@@ -1,0 +1,22 @@
+{{ define "title" }}Categories list{{ end }}
+
+{{ define "content" }}
+
+<h1>Categories List</h1>
+<div>
+    <form method="post" action="/deleterecipes">
+        <ul>
+            {{ range . }}
+            <li>
+                <div>
+                    <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>
+                    {{ .Name }}
+                </div>
+            </li>
+            {{ end }}
+        </ul>
+        <input type="submit" value="delete selected"/>
+    </form>
+</div>
+
+{{ end }}

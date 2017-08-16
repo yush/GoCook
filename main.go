@@ -23,15 +23,18 @@ func main() {
 	router := httprouter.New()
 	router.ServeFiles("/public/*filepath", http.Dir(BaseDir()+"public/"))
 	router.ServeFiles("/images/*filepath", http.Dir(BaseDir()+"db/images/"))
-	router.GET("/", IndexRoute)
 	router.GET("/signin", SigninRoute)
 	router.GET("/signup", SignupRoute)
+	router.GET("/categories", ListCategories)
+	router.GET("/newcategory", NewCategories)
+	router.POST("/categories", PostNewCategories)
 	router.GET("/recipes", RecipesRoute)
 	router.POST("/deleterecipes", DeleteRecipesRoute)
 	router.GET("/newrecipe", GetNewRecipeHandler)
 	router.GET("/recipes/:id", GetRecipeHandler)
 	router.POST("/recipes", PutRecipeHandler)
 	router.GET("/import", ImportRoute)
+	router.GET("/", IndexRoute)
 
 	if err := http.ListenAndServe(":3000", router); err != nil {
 		log.Fatal("ListenAndServe: ", err.Error())
@@ -63,6 +66,31 @@ func SignupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 	if err := templates["signup"].Execute(res, nil); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func NewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	if err := templates["newCategory"].Execute(res, nil); err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func ListCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	db := getDb()
+	defer db.Close()
+
+	user_id := 1
+	categories := GetAllCategories(db, user_id)
+	if err := templates["listCategories"].Execute(res, categories); err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	db := getDb()
+	defer db.Close()
+
+	NewCategory(db, req.FormValue("name"), 1)
+	http.Redirect(res, req, "/categories", 301)
 }
 
 func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -151,4 +179,6 @@ func loadTemplates() {
 	templates["recipes"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/recipes/list.html"))
 	templates["showRecipe"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/recipes/showRecipe.html"))
 	templates["newRecipe"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/recipes/newRecipe.html"))
+	templates["newCategory"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/categories/newCategory.html"))
+	templates["listCategories"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/categories/listCategories.html"))
 }

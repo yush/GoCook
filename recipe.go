@@ -17,6 +17,12 @@ type Recipe struct {
 	Filepath string
 }
 
+type Category struct {
+	Id      uint
+	Name    string
+	User_id uint
+}
+
 func checkErr(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -154,4 +160,33 @@ func DeleteRecipe(db *sql.DB, id int) {
 		log.Fatal(err)
 	}
 	tx.Commit()
+}
+
+func NewCategory(db *sql.DB, name string, user_id int) {
+	var newId int
+	db.Begin()
+	defer db.Close()
+
+	db.QueryRow("SELECT MAX(ID) FROM CATEGORIES").Scan(&newId)
+	_, err := db.Exec("INSERT INTO CATEGORIES(ID, NAME, USER_ID) values (?, ?, ?)", newId+1, name, user_id)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func GetAllCategories(db *sql.DB, user_id int) []Category {
+	db.Begin()
+	defer db.Close()
+
+	rows, err := db.Query("SELECT ID, NAME FROM CATEGORIES WHERE USER_ID = ?", user_id)
+	if err != nil {
+		log.Fatal(err)
+	}
+	categories := make([]Category, 0, 10)
+	for rows.Next() {
+		var cat Category
+		rows.Scan(&cat.Id, &cat.Name)
+		categories = append(categories, cat)
+	}
+	return categories
 }
