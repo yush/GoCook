@@ -190,3 +190,15 @@ func GetAllCategories(db *sql.DB, user_id int) []Category {
 	}
 	return categories
 }
+
+func CreateNewUser(db *sql.DB, email string, password string, passConf string) {
+	db.Begin()
+	defer db.Close()
+
+	if password == passConf {
+		_, err := db.Exec("INSERT INTO USERS(EMAIL, PASSWORD) values (?,?)", email, password)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+}

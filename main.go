@@ -25,6 +25,7 @@ func main() {
 	router.ServeFiles("/images/*filepath", http.Dir(BaseDir()+"db/images/"))
 	router.GET("/signin", SigninRoute)
 	router.GET("/signup", SignupRoute)
+	router.POST("/signup", NewUser)
 	router.GET("/categories", ListCategories)
 	router.GET("/newcategory", NewCategories)
 	router.POST("/categories", PostNewCategories)
@@ -166,6 +167,14 @@ func ImportRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 	defer db.Close()
 
 	ImportRecipes(db, BaseDir()+DirFileStorage())
+	http.Redirect(res, req, "/recipes", 301)
+}
+
+func NewUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	db := getDb()
+	defer db.Close()
+
+	CreateNewUser(db, req.FormValue("email"), req.FormValue("pass"), req.FormValue("passConf"))
 	http.Redirect(res, req, "/recipes", 301)
 }
 
