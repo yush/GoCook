@@ -6,7 +6,7 @@
 <div>
     <form method="post" action="/deleterecipes">
         <ul>
-            {{ range . }}
+            {{ range .Recipes }}
             <li>
                 <div>
                     <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>

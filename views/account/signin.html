@@ -2,11 +2,12 @@
 
 {{ define "content" }}
 
+<div>{{ . }}</div>
 <div class="col-md-offset-4 col-md-4">
-    <form class="form-signin" role="form" action="/signin">
+    <form class="form-signin" role="form" action="/signin" method="post">
     <h2 class="form-signin-heading">Sign in</h2>
-    <input type="email" class="form-control" placeholder="Email address" required autofocus>
-    <input type="password" class="form-control" placeholder="Password" required>
+        <input type="email" id="email" name="email" class="form-control" placeholder="Email address" required autofocus>
+        <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
     <div class="checkbox">
         <label>
             <input type="checkbox" value="remember-me"> Remember me

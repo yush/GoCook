@@ -10,12 +10,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"html"
 )
 
 var templates map[string]*template.Template
+var sessions *SessionManagerMem
 
 func init() {
 	loadTemplates()
+	sessions = new(SessionManagerMem)
+	sessions.Sessions = make(map[string]string)
 }
 
 func main() {
@@ -24,6 +28,7 @@ func main() {
 	router.ServeFiles("/public/*filepath", http.Dir(BaseDir()+"public/"))
 	router.ServeFiles("/images/*filepath", http.Dir(BaseDir()+"db/images/"))
 	router.GET("/signin", SigninRoute)
+	router.POST("/signin", LoginUser)
 	router.GET("/signup", SignupRoute)
 	router.POST("/signup", NewUser)
 	router.GET("/categories", ListCategories)
@@ -51,16 +56,32 @@ func getDb() *sql.DB {
 }
 
 func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-
-	if err := templates["index"].Execute(res, nil); err != nil {
+	data := struct {
+		Session string
+	}{
+		"test",
+	}
+	if err := templates["index"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	if err := templates["signin"].Execute(res, nil); err != nil {
+	data := struct {
+		Session string
+	}{
+		"test",
+	}
+	if err := templates["signin"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func LoginUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	id, _ := sessions.Add(req.FormValue("email"))
+	cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(id), Path: "/", HttpOnly: true, MaxAge: 300}
+	http.SetCookie(res, &cookie)
+	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
 func SignupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -91,15 +112,31 @@ func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.
 	defer db.Close()
 
 	NewCategory(db, req.FormValue("name"), 1)
-	http.Redirect(res, req, "/categories", 301)
+	http.Redirect(res, req, "/categories", http.StatusMovedPermanently)
 }
 
 func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	var sessionid string
 	db := getDb()
 	defer db.Close()
 
+	cookie, err := req.Cookie("Cookbook")
+	if err != nil {
+		sessionid = "empty"
+	} else {
+		sessionid = html.UnescapeString(cookie.Value)
+	}
+
 	recipes := GetAllRecipes(db)
-	if err := templates["recipes"].Execute(res, recipes); err != nil {
+	data := struct {
+		Recipes []Recipe
+		Session string
+	}{
+		recipes,
+		sessions.GetById(sessionid),
+	}
+
+	if err := templates["recipes"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -121,7 +158,7 @@ func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter
 			DeleteRecipe(db, idRecipe)
 		}
 	}
-	http.Redirect(res, req, "/recipes", 301)
+	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
 func GetRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.Params) {
@@ -159,7 +196,7 @@ func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 		log.Fatal(errDecode)
 	}
 	UploadRecipe(db, img, handler, req.FormValue("name"))
-	http.Redirect(res, req, "/recipes", 301)
+	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
 func ImportRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -167,7 +204,7 @@ func ImportRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 	defer db.Close()
 
 	ImportRecipes(db, BaseDir()+DirFileStorage())
-	http.Redirect(res, req, "/recipes", 301)
+	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
 func NewUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -175,14 +212,13 @@ func NewUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	defer db.Close()
 
 	CreateNewUser(db, req.FormValue("email"), req.FormValue("pass"), req.FormValue("passConf"))
-	http.Redirect(res, req, "/recipes", 301)
+	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
 func loadTemplates() {
 	var baseTemplate = BaseDir() + "/views/layout/_base.html"
 	templates = make(map[string]*template.Template)
-	Fn := BaseDir() + "/views/home/index.html"
-	templates["index"] = template.Must(template.ParseFiles(baseTemplate, Fn))
+	templates["index"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/home/index.html"))
 	templates["signin"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/account/signin.html"))
 	templates["signup"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/account/signup.html"))
 	templates["recipes"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/recipes/list.html"))
