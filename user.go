@@ -8,12 +8,14 @@ import (
 	"errors"
 	"encoding/base64"
 	"html"
+	"net/http"
 )
 
 type SessionManager interface {
 	Get(name string) (string, error)
 	GetById(id string) string
 	Add(name string) error
+	CurrentCookieId() (string, error)
 }
 
 type SessionManagerMem struct {
@@ -67,3 +69,21 @@ func sessionId() string {
 	}
 	return base64.URLEncoding.EncodeToString(b)
 }
+
+func (s *SessionManagerMem) LoggedInUser(req *http.Request) (string, error) {
+	var sessionid string
+	cookie, err := req.Cookie("Cookbook")
+	if err != nil {
+		return "", errors.New("No cookies found")
+	} else {
+		sessionid = html.UnescapeString(cookie.Value)
+	}
+
+	username := s.GetById(sessionid)
+	if username == "" {
+		return "", errors.New("No logged in user")
+	} else {
+		return username, nil
+	}
+}
+

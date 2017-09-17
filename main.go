@@ -116,24 +116,21 @@ func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.
 }
 
 func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	var sessionid string
 	db := getDb()
 	defer db.Close()
-
-	cookie, err := req.Cookie("Cookbook")
+	recipes := GetAllRecipes(db)
+	username, err := sessions.LoggedInUser(req)
 	if err != nil {
-		sessionid = "empty"
-	} else {
-		sessionid = html.UnescapeString(cookie.Value)
+		log.Fatal(err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 
-	recipes := GetAllRecipes(db)
 	data := struct {
 		Recipes []Recipe
 		Session string
 	}{
 		recipes,
-		sessions.GetById(sessionid),
+		username,
 	}
 
 	if err := templates["recipes"].Execute(res, data); err != nil {
@@ -171,7 +168,22 @@ func GetRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 	}
 
 	recipe := GetRecipe(db, idRecipe)
-	if err := templates["showRecipe"].Execute(res, recipe); err != nil {
+
+	username, err := sessions.LoggedInUser(req)
+	if err != nil {
+		log.Fatal(err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+
+	data := struct {
+		Recipe  Recipe
+		Session string
+	}{
+		recipe,
+		username,
+	}
+
+	if err := templates["showRecipe"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
