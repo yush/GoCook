@@ -42,9 +42,13 @@
                 <li><a href="/newrecipe">New recipe</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
+                {{ if .ASession }}
+                <li><a href="/user">{{ .ASession.UserName }}</a></li>
+                <li><a href="/logout">Logout</a></li>
+                {{ else }}
                 <li><a href="/signup">Signup</a></li>
                 <li><a href="/signin">Signin</a></li>
-                <li><a href="/user">{{ .Session }}</a></li>
+                {{ end }}
             </ul>
 
         </div><!--/.nav-collapse -->

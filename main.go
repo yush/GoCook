@@ -19,7 +19,7 @@ var sessions *SessionManagerMem
 func init() {
 	loadTemplates()
 	sessions = new(SessionManagerMem)
-	sessions.Sessions = make(map[string]string)
+	sessions.Sessions = make(map[string]Session)
 }
 
 func main() {
@@ -57,9 +57,9 @@ func getDb() *sql.DB {
 
 func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	data := struct {
-		Session string
+		ASession *Session
 	}{
-		"test",
+		nil,
 	}
 	if err := templates["index"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -68,9 +68,9 @@ func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params)
 
 func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	data := struct {
-		Session string
+		ASession *Session
 	}{
-		"test",
+		nil,
 	}
 	if err := templates["signin"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -78,8 +78,8 @@ func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 }
 
 func LoginUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	id, _ := sessions.Add(req.FormValue("email"))
-	cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(id), Path: "/", HttpOnly: true, MaxAge: 300}
+	Sess, _ := sessions.Add(req.FormValue("email"))
+	cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(Sess.SessionID), Path: "/", HttpOnly: true, MaxAge: 300}
 	http.SetCookie(res, &cookie)
 	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
@@ -119,18 +119,18 @@ func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Param
 	db := getDb()
 	defer db.Close()
 	recipes := GetAllRecipes(db)
-	username, err := sessions.LoggedInUser(req)
+	Sess, err := sessions.LoggedInUser(req)
 	if err != nil {
 		log.Fatal(err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 
 	data := struct {
-		Recipes []Recipe
-		Session string
+		Recipes  []Recipe
+		ASession Session
 	}{
 		recipes,
-		username,
+		Sess,
 	}
 
 	if err := templates["recipes"].Execute(res, data); err != nil {
@@ -169,18 +169,18 @@ func GetRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 
 	recipe := GetRecipe(db, idRecipe)
 
-	username, err := sessions.LoggedInUser(req)
+	sess, err := sessions.LoggedInUser(req)
 	if err != nil {
 		log.Fatal(err)
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 
 	data := struct {
-		Recipe  Recipe
-		Session string
+		ARecipe  Recipe
+		ASession Session
 	}{
 		recipe,
-		username,
+		sess,
 	}
 
 	if err := templates["showRecipe"].Execute(res, data); err != nil {

@@ -11,41 +11,47 @@ import (
 	"net/http"
 )
 
+type Session struct {
+	SessionID string
+	UserId    int
+	UserName  string
+}
+
 type SessionManager interface {
-	Get(name string) (string, error)
-	GetById(id string) string
-	Add(name string) error
+	Get(name string) (Session, error)
+	GetById(id string) Session
+	Add(ASession Session) error
 	CurrentCookieId() (string, error)
 }
 
 type SessionManagerMem struct {
-	Sessions map[string]string
+	Sessions map[string]Session
 }
 
-func (s *SessionManagerMem) Get(name string) (string, error) {
+func (s *SessionManagerMem) Get(name string) (Session, error) {
 	val, isPresent := s.Sessions[name]
 	if isPresent {
 		return val, nil
 	} else {
-		return "", errors.New("Session not found")
+		return Session{}, errors.New("Session not found")
 	}
 }
 
-func (s *SessionManagerMem) GetById(id string) string {
+func (s *SessionManagerMem) GetById(id string) Session {
 	unescapedId := html.UnescapeString(id)
-	for key, value := range s.Sessions {
-		if value == unescapedId {
-			return key
+	for _, value := range s.Sessions {
+		if value.SessionID == unescapedId {
+			return value
 		}
 	}
-	return ""
+	return Session{}
 }
 
-func (s *SessionManagerMem) Add(name string) (string, error) {
+func (s *SessionManagerMem) Add(name string) (Session, error) {
 	if _, ok := s.Sessions[name]; ok {
-		return "", errors.New("Session already exists")
+		return Session{}, errors.New("Session already exists")
 	} else {
-		s.Sessions[name] = sessionId()
+		s.Sessions[name] = Session{sessionId(), 0, name}
 		return s.Sessions[name], nil
 	}
 }
@@ -70,20 +76,19 @@ func sessionId() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-func (s *SessionManagerMem) LoggedInUser(req *http.Request) (string, error) {
+func (s *SessionManagerMem) LoggedInUser(req *http.Request) (Session, error) {
 	var sessionid string
 	cookie, err := req.Cookie("Cookbook")
 	if err != nil {
-		return "", errors.New("No cookies found")
+		return Session{}, errors.New("No cookies found")
 	} else {
 		sessionid = html.UnescapeString(cookie.Value)
 	}
 
-	username := s.GetById(sessionid)
-	if username == "" {
-		return "", errors.New("No logged in user")
+	CurrentSession := s.GetById(sessionid)
+	if CurrentSession.UserName == "" {
+		return Session{}, errors.New("No logged in user")
 	} else {
-		return username, nil
+		return CurrentSession, nil
 	}
 }
-
