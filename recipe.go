@@ -55,17 +55,19 @@ func GetAllRecipes(db *sql.DB) []Recipe {
 
 func Insert(db *sql.DB, name string, filename string) {
 	// INSERT
+	var newId int
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	stmt, err := tx.Prepare("insert into RECIPES(NAME, FILEPATH) values(?, ?)")
+	db.QueryRow("SELECT MAX(ID) FROM RECIPES").Scan(&newId)
+	stmt, err := tx.Prepare("insert into RECIPES(ID, NAME, FILEPATH) values(?, ?, ?)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(name, filename)
+	_, err = stmt.Exec(newId+1, name, filename)
 	if err != nil {
 		log.Fatal(err)
 	}
