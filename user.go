@@ -18,41 +18,43 @@ type Session struct {
 }
 
 type SessionManager interface {
-	Get(name string) (Session, error)
-	GetById(id string) Session
+	Get(name string) (*Session, error)
+	GetById(id string) *Session
 	Add(ASession Session) error
 	CurrentCookieId() (string, error)
+	Remove(id string) error
 }
 
 type SessionManagerMem struct {
 	Sessions map[string]Session
 }
 
-func (s *SessionManagerMem) Get(name string) (Session, error) {
+func (s *SessionManagerMem) Get(name string) (*Session, error) {
 	val, isPresent := s.Sessions[name]
 	if isPresent {
-		return val, nil
+		return &val, nil
 	} else {
-		return Session{}, errors.New("Session not found")
+		return nil, errors.New("Session not found")
 	}
 }
 
-func (s *SessionManagerMem) GetById(id string) Session {
+func (s *SessionManagerMem) GetById(id string) *Session {
 	unescapedId := html.UnescapeString(id)
 	for _, value := range s.Sessions {
 		if value.SessionID == unescapedId {
-			return value
+			return &value
 		}
 	}
-	return Session{}
+	return nil
 }
 
-func (s *SessionManagerMem) Add(name string) (Session, error) {
+func (s *SessionManagerMem) Add(name string) (*Session, error) {
 	if _, ok := s.Sessions[name]; ok {
-		return Session{}, errors.New("Session already exists")
+		return nil, errors.New("Session already exists")
 	} else {
-		s.Sessions[name] = Session{sessionId(), 0, name}
-		return s.Sessions[name], nil
+		FSession := &Session{sessionId(), 0, name}
+		s.Sessions[name] = *FSession
+		return FSession, nil
 	}
 }
 
@@ -76,19 +78,23 @@ func sessionId() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-func (s *SessionManagerMem) LoggedInUser(req *http.Request) (Session, error) {
+func (s *SessionManagerMem) LoggedInUser(req *http.Request) (*Session, error) {
 	var sessionid string
 	cookie, err := req.Cookie("Cookbook")
 	if err != nil {
-		return Session{}, errors.New("No cookies found")
+		return nil, errors.New("No cookies found")
 	} else {
 		sessionid = html.UnescapeString(cookie.Value)
 	}
 
 	CurrentSession := s.GetById(sessionid)
 	if CurrentSession.UserName == "" {
-		return Session{}, errors.New("No logged in user")
+		return nil, errors.New("No logged in user")
 	} else {
 		return CurrentSession, nil
 	}
+}
+
+func (s *SessionManagerMem) Remove(id string) {
+	delete(s.Sessions, id)
 }

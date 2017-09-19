@@ -27,6 +27,7 @@ func main() {
 	router := httprouter.New()
 	router.ServeFiles("/public/*filepath", http.Dir(BaseDir()+"public/"))
 	router.ServeFiles("/images/*filepath", http.Dir(BaseDir()+"db/images/"))
+	router.GET("/out", LogoutUser)
 	router.GET("/signin", SigninRoute)
 	router.POST("/signin", LoginUser)
 	router.GET("/signup", SignupRoute)
@@ -90,6 +91,21 @@ func SignupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 	}
 }
 
+func LogoutUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	s, err := sessions.LoggedInUser(req)
+	if err != nil {
+		log.Print(err)
+	}
+
+	if s != nil {
+
+		sessions.Remove(s.UserName)
+		cookie := http.Cookie{Name: "Cookbook", Value: "", Path: "/", HttpOnly: true, MaxAge: 300}
+		http.SetCookie(res, &cookie)
+	}
+	http.Redirect(res, req, "/", http.StatusMovedPermanently)
+}
+
 func NewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	if err := templates["newCategory"].Execute(res, nil); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -127,7 +143,7 @@ func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Param
 
 	data := struct {
 		Recipes  []Recipe
-		ASession Session
+		ASession *Session
 	}{
 		recipes,
 		Sess,
@@ -177,7 +193,7 @@ func GetRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 
 	data := struct {
 		ARecipe  Recipe
-		ASession Session
+		ASession *Session
 	}{
 		recipe,
 		sess,
