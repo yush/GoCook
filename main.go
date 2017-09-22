@@ -70,8 +70,10 @@ func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params)
 func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	data := struct {
 		ASession *Session
+		Message  string
 	}{
 		nil,
+		"",
 	}
 	if err := templates["signin"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -79,10 +81,24 @@ func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 }
 
 func LoginUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	Sess, _ := sessions.Add(req.FormValue("email"))
-	cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(Sess.SessionID), Path: "/", HttpOnly: true, MaxAge: 300}
-	http.SetCookie(res, &cookie)
-	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+	user := GetUserByEmail(getDb(), req.FormValue("email"))
+	if user != nil {
+		session, _ := sessions.AddNew(user)
+		cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(session.SessionID), Path: "/", HttpOnly: true, MaxAge: 300}
+		http.SetCookie(res, &cookie)
+		http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+	} else {
+		data := struct {
+			ASession *Session
+			Message  string
+		}{
+			nil,
+			"User not found or wrong password",
+		}
+		if err := templates["signin"].Execute(res, data); err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+	}
 }
 
 func SignupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -99,7 +115,7 @@ func LogoutUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params)
 
 	if s != nil {
 
-		sessions.Remove(s.UserName)
+		sessions.Remove(s.Email)
 		cookie := http.Cookie{Name: "Cookbook", Value: "", Path: "/", HttpOnly: true, MaxAge: 300}
 		http.SetCookie(res, &cookie)
 	}

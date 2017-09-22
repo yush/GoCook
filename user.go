@@ -14,7 +14,14 @@ import (
 type Session struct {
 	SessionID string
 	UserId    int
-	UserName  string
+	Email     string
+}
+
+type User struct {
+	Id       int
+	Username string
+	Email    string
+	Password string
 }
 
 type SessionManager interface {
@@ -48,12 +55,13 @@ func (s *SessionManagerMem) GetById(id string) *Session {
 	return nil
 }
 
-func (s *SessionManagerMem) Add(name string) (*Session, error) {
-	if _, ok := s.Sessions[name]; ok {
+func (s *SessionManagerMem) AddNew(user *User) (*Session, error) {
+	_, err := s.Get(user.Email)
+	if err == nil {
 		return nil, errors.New("Session already exists")
 	} else {
-		FSession := &Session{sessionId(), 0, name}
-		s.Sessions[name] = *FSession
+		FSession := &Session{sessionId(), user.Id, user.Email}
+		s.Sessions[FSession.SessionID] = *FSession
 		return FSession, nil
 	}
 }
@@ -63,10 +71,27 @@ func CreateNewUser(db *sql.DB, email string, password string, passConf string) {
 	defer db.Close()
 
 	if password == passConf {
-		_, err := db.Exec("INSERT INTO USERS(EMAIL, PASSWORD) values (?,?)", email, password)
+		var newId int
+		db.QueryRow("SELECT MAX(ID) FROM USERS").Scan(&newId)
+		_, err := db.Exec("INSERT INTO USERS(ID, USERNAME, EMAIL, PASSWORD) values (?, ?, ?,?)", newId, email, email, password)
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+}
+
+func GetUserByEmail(db *sql.DB, email string) *User {
+	db.Begin()
+	defer db.Close()
+
+	var user User
+	r := db.QueryRow("SELECT ID, USERNAME, EMAIL, PASSWORD FROM USERS WHERE EMAIL = ?", email)
+	err := r.Scan(&user.Id, &user.Username, &user.Email, &user.Password)
+	if err != nil {
+		log.Print("User not %s found", email)
+		return nil
+	} else {
+		return &user
 	}
 }
 
@@ -88,7 +113,7 @@ func (s *SessionManagerMem) LoggedInUser(req *http.Request) (*Session, error) {
 	}
 
 	CurrentSession := s.GetById(sessionid)
-	if CurrentSession.UserName == "" {
+	if CurrentSession.Email == "" {
 		return nil, errors.New("No logged in user")
 	} else {
 		return CurrentSession, nil
