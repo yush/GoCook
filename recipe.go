@@ -29,10 +29,10 @@ func checkErr(err error) {
 	}
 }
 
-func GetAllRecipes(db *sql.DB) []Recipe {
+func GetAllRecipes(db *sql.DB, userId int) []Recipe {
 	recipes := make([]Recipe, 0, 10)
 	db.Begin()
-	rows, err := db.Query("select id, name, filepath from recipes")
+	rows, err := db.Query("select id, name, filepath from recipes where OWNERID = ?", userId)
 
 	if err != nil {
 		log.Fatal(err)
@@ -53,7 +53,7 @@ func GetAllRecipes(db *sql.DB) []Recipe {
 	return recipes
 }
 
-func Insert(db *sql.DB, name string, filename string) {
+func Insert(db *sql.DB, userId int, name string, filename string) {
 	// INSERT
 	var newId int
 	tx, err := db.Begin()
@@ -62,12 +62,12 @@ func Insert(db *sql.DB, name string, filename string) {
 	}
 
 	db.QueryRow("SELECT MAX(ID) FROM RECIPES").Scan(&newId)
-	stmt, err := tx.Prepare("insert into RECIPES(ID, NAME, FILEPATH) values(?, ?, ?)")
+	stmt, err := tx.Prepare("insert into RECIPES(ID, NAME, FILEPATH, OWNERID) values(?, ?, ?, ?)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(newId+1, name, filename)
+	_, err = stmt.Exec(newId+1, name, filename, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,12 +83,12 @@ func GetRecipe(db *sql.DB, id int) Recipe {
 	return recipe
 }
 
-func UploadRecipe(db *sql.DB, img image.Image, handler *multipart.FileHeader, recipeName string) {
+func UploadRecipe(db *sql.DB, userId int, img image.Image, handler *multipart.FileHeader, recipeName string) {
 	resizeAndAddFile(handler.Filename, img)
-	Insert(db, recipeName, handler.Filename)
+	Insert(db, userId, recipeName, handler.Filename)
 }
 
-func ImportRecipes(db *sql.DB, dirname string) {
+func ImportRecipes(db *sql.DB, userId int, dirname string) {
 	existingFiles, err := ioutil.ReadDir(dirname)
 	checkErr(err)
 
@@ -104,7 +104,7 @@ func ImportRecipes(db *sql.DB, dirname string) {
 		}
 
 		if IsExisting == false {
-			Insert(db, fileInfo.Name(), fileInfo.Name())
+			Insert(db, userId, fileInfo.Name(), fileInfo.Name())
 			// Read all content of src to data
 			data, errLoad := ioutil.ReadFile(fileInfo.Name())
 			checkErr(errLoad)

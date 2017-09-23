@@ -88,16 +88,20 @@ func LoginUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) 
 		http.SetCookie(res, &cookie)
 		http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 	} else {
-		data := struct {
-			ASession *Session
-			Message  string
-		}{
-			nil,
-			"User not found or wrong password",
-		}
-		if err := templates["signin"].Execute(res, data); err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
-		}
+		redirectToLogin(res)
+	}
+}
+
+func redirectToLogin(res http.ResponseWriter) {
+	data := struct {
+		ASession *Session
+		Message  string
+	}{
+		nil,
+		"User not found or wrong password",
+	}
+	if err := templates["signin"].Execute(res, data); err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -148,25 +152,31 @@ func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.
 }
 
 func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	db := getDb()
-	defer db.Close()
-	recipes := GetAllRecipes(db)
-	Sess, err := sessions.LoggedInUser(req)
+	user, err := sessions.LoggedInUser(req)
 	if err != nil {
-		log.Fatal(err)
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
+		redirectToLogin(res)
+	} else {
+		db := getDb()
+		defer db.Close()
 
-	data := struct {
-		Recipes  []Recipe
-		ASession *Session
-	}{
-		recipes,
-		Sess,
-	}
+		recipes := GetAllRecipes(db, user.UserId)
+		Sess, err := sessions.LoggedInUser(req)
+		if err != nil {
+			log.Fatal(err)
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
 
-	if err := templates["recipes"].Execute(res, data); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+		data := struct {
+			Recipes  []Recipe
+			ASession *Session
+		}{
+			recipes,
+			Sess,
+		}
+
+		if err := templates["recipes"].Execute(res, data); err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -230,6 +240,11 @@ func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 	db := getDb()
 	defer db.Close()
 
+	session, err := sessions.LoggedInUser(req)
+	if err != nil {
+		log.Fatal("No session found")
+	}
+
 	file, handler, err := req.FormFile("uploadfile")
 	if err != nil {
 		log.Fatal(err)
@@ -239,7 +254,7 @@ func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 	if errDecode != nil {
 		log.Fatal(errDecode)
 	}
-	UploadRecipe(db, img, handler, req.FormValue("name"))
+	UploadRecipe(db, session.UserId, img, handler, req.FormValue("name"))
 	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
@@ -247,8 +262,13 @@ func ImportRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 	db := getDb()
 	defer db.Close()
 
-	ImportRecipes(db, BaseDir()+DirFileStorage())
-	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+	user, err := sessions.LoggedInUser(req)
+	if err != nil {
+		redirectToLogin(res)
+	} else {
+		ImportRecipes(db, user.UserId, BaseDir()+DirFileStorage())
+		http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+	}
 }
 
 func NewUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
