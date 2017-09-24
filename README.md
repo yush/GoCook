@@ -1,3 +1,10 @@
-# Building for Raspberry 2
+# CookBook
 
-GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc go build
+Collect and share recipes with your friends.
+
+# Get started
+
+* Signup: Create a new account
+* Signin
+* Take photos of your recipe
+* Upload it to CookBook

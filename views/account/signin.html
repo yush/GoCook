@@ -3,7 +3,11 @@
 {{ define "content" }}
 
 
-<div>{{ .Message }}</div>
+{{ if .Message }}
+<div class="alert alert-danger" role="alert">
+    <b>{{ .Message }}</b>
+</div>
+{{ end }}
 
 <div class="col-md-offset-4 col-md-4">
     <form class="form-signin" role="form" action="/signin" method="post">

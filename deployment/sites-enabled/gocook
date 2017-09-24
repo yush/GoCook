@@ -1,0 +1,8 @@
+server {
+    listen 80;
+    server_name 192.168.0.20;
+    client_max_body_size 10M;
+    location / {
+        proxy_pass         http://127.0.0.1:3000;
+    }
+}
