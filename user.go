@@ -3,11 +3,11 @@ package main
 import (
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
+	"errors"
+	"html"
 	"io"
 	"log"
-	"errors"
-	"encoding/base64"
-	"html"
 	"net/http"
 )
 
@@ -45,14 +45,14 @@ func (s *SessionManagerMem) Get(name string) (*Session, error) {
 	}
 }
 
-func (s *SessionManagerMem) GetById(id string) *Session {
+func (s *SessionManagerMem) GetById(id string) (*Session, error) {
 	unescapedId := html.UnescapeString(id)
 	for _, value := range s.Sessions {
 		if value.SessionID == unescapedId {
-			return &value
+			return &value, nil
 		}
 	}
-	return nil
+	return nil, errors.New("Session not found")
 }
 
 func (s *SessionManagerMem) AddNew(user *User) (*Session, error) {
@@ -112,12 +112,8 @@ func (s *SessionManagerMem) LoggedInUser(req *http.Request) (*Session, error) {
 		sessionid = html.UnescapeString(cookie.Value)
 	}
 
-	CurrentSession := s.GetById(sessionid)
-	if CurrentSession.Email == "" {
-		return nil, errors.New("No logged in user")
-	} else {
-		return CurrentSession, nil
-	}
+	CurrentSession, err := s.GetById(sessionid)
+	return CurrentSession, err
 }
 
 func (s *SessionManagerMem) Remove(id string) {

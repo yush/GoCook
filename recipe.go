@@ -4,11 +4,15 @@ import (
 	"database/sql"
 	"github.com/nfnt/resize"
 	"image"
+	_ "image/gif"
 	"image/jpeg"
 	"io/ioutil"
 	"log"
+	"math"
 	"mime/multipart"
 	"os"
+	"path"
+	"strings"
 )
 
 type Recipe struct {
@@ -89,6 +93,7 @@ func UploadRecipe(db *sql.DB, userId int, img image.Image, handler *multipart.Fi
 }
 
 func ImportRecipes(db *sql.DB, userId int, dirname string) {
+	var IsSupportedFormat bool
 	existingFiles, err := ioutil.ReadDir(dirname)
 	checkErr(err)
 
@@ -103,32 +108,61 @@ func ImportRecipes(db *sql.DB, userId int, dirname string) {
 			}
 		}
 
-		if IsExisting == false {
-			Insert(db, userId, fileInfo.Name(), fileInfo.Name())
-			// Read all content of src to data
-			data, errLoad := ioutil.ReadFile(fileInfo.Name())
-			checkErr(errLoad)
-			err := addFile(fileInfo.Name(), data)
-			checkErr(err)
+		ext := strings.ToLower(path.Ext(fileInfo.Name()))
+		switch ext {
+		case ".png", ".jpg", ".gif":
+			IsSupportedFormat = true
+		default:
+			IsSupportedFormat = false
 		}
-		os.Remove(BaseDir() + DirFileStorage() + fileInfo.Name())
+
+		if IsExisting {
+			log.Print("Unable to import ?: already exists", fileInfo.Name())
+			continue
+		}
+
+		if !IsSupportedFormat {
+			log.Print("Unable to import ?: format not supported ", fileInfo.Name())
+			continue
+		}
+
+		Insert(db, userId, fileInfo.Name(), fileInfo.Name())
+		// Read all content of src to data
+		data, errLoad := ioutil.ReadFile(BaseDir() + DirFileImport() + fileInfo.Name())
+		checkErr(errLoad)
+		err := addFile(fileInfo.Name(), data)
+		checkErr(err)
+		os.Remove(BaseDir() + DirFileImport() + fileInfo.Name())
 	}
 }
 func addFile(filename string, data []byte) error {
 	// Write data to dst
-	err := ioutil.WriteFile(BaseDir()+DirFileStorage()+filename, data, 0644)
+	newFile := BaseDir() + DirFileStorage() + filename
+	err := ioutil.WriteFile(newFile, data, 0644)
 	return err
 }
 
 func resizeAndAddFile(name string, img image.Image) error {
-	/*
-		var out image.Image;
-		errConvert := rez.Convert(out, img, rez.NewBicubicFilter())
-		if errConvert!= nil {
-			return errConvert
+	const MAX = 1024
+	var out image.Image
+	var newX uint
+	var newY uint
+
+	size := img.Bounds().Size()
+	max_img := math.Max(float64(size.X), float64(size.Y))
+	if max_img > MAX {
+		scale := max_img / MAX
+		if size.X < size.Y {
+			newX = uint(float64(size.X) / scale)
+			newY = uint(float64(size.Y) / scale)
+		} else {
+			newX = uint(float64(size.Y) / scale)
+			newY = uint(float64(size.X) / scale)
 		}
-	*/
-	out := resize.Resize(1024, 768, img, resize.Lanczos3)
+		out = resize.Resize(newX, newY, img, resize.Lanczos3)
+	} else {
+		out = img
+	}
 
 	toimg, _ := os.Create(BaseDir() + DirFileStorage() + name)
 	defer toimg.Close()
@@ -192,4 +226,3 @@ func GetAllCategories(db *sql.DB, user_id int) []Category {
 	}
 	return categories
 }
-
