@@ -143,26 +143,7 @@ func addFile(filename string, data []byte) error {
 }
 
 func resizeAndAddFile(name string, img image.Image) error {
-	const MAX = 1024
-	var out image.Image
-	var newX uint
-	var newY uint
-
-	size := img.Bounds().Size()
-	max_img := math.Max(float64(size.X), float64(size.Y))
-	if max_img > MAX {
-		scale := max_img / MAX
-		if size.X < size.Y {
-			newX = uint(float64(size.X) / scale)
-			newY = uint(float64(size.Y) / scale)
-		} else {
-			newX = uint(float64(size.Y) / scale)
-			newY = uint(float64(size.X) / scale)
-		}
-		out = resize.Resize(newX, newY, img, resize.Lanczos3)
-	} else {
-		out = img
-	}
+	out := resizeFile(img, 960)
 
 	toimg, _ := os.Create(BaseDir() + DirFileStorage() + name)
 	defer toimg.Close()
@@ -171,6 +152,23 @@ func resizeAndAddFile(name string, img image.Image) error {
 		return errEncode
 	}
 	return nil
+}
+
+func resizeFile(img image.Image, max int) image.Image {
+	var out image.Image
+	var height uint
+	var width uint
+	size := img.Bounds().Size()
+	max_img := math.Max(float64(size.X), float64(size.Y))
+	if max_img > float64(max) {
+		scale := max_img / float64(max)
+		height = uint(float64(size.Y) / scale)
+		width = uint(float64(size.X) / scale)
+		out = resize.Resize(width, height, img, resize.Lanczos3)
+	} else {
+		out = img
+	}
+	return out
 }
 
 func RemoveFile(filename string) {
