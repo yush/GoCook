@@ -12,12 +12,23 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"github.com/mattn/go-sqlite3"
+	"github.com/jasonlvhit/gocron"
 )
 
 var templates map[string]*template.Template
 var sessions *SessionManagerMem
+var Sqlite3conn []*sqlite3.SQLiteConn
 
 func init() {
+	sql.Register("sqlite3_backup",
+		&sqlite3.SQLiteDriver{
+			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
+				Sqlite3conn = append(Sqlite3conn, conn)
+				return nil
+			},
+		})
+
 	loadTemplates()
 	sessions = new(SessionManagerMem)
 	sessions.Sessions = make(map[string]Session)
@@ -42,7 +53,11 @@ func main() {
 	router.GET("/newrecipe", GetNewRecipeHandler)
 	router.GET("/recipes/:id", GetRecipeHandler)
 	router.POST("/recipes", PutRecipeHandler)
+	router.GET("/backup", BackupRoute)
 	router.GET("/", IndexRoute)
+
+	gocron.Every(1).Day().At("05:00").Do(BackupToFTP)
+	gocron.Start()
 
 	if err := http.ListenAndServe(":3000", router); err != nil {
 		log.Println("ListenAndServe: ", err.Error())
@@ -287,6 +302,13 @@ func NewUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 
 	CreateNewUser(db, req.FormValue("email"), req.FormValue("pass"), req.FormValue("passConf"))
 	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+}
+
+func BackupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	err := BackupDb("test")
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func loadTemplates() {

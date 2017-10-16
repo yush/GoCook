@@ -4,7 +4,9 @@
 
 <h1>{{.ARecipe.Name}}</h1>
 <div>
-    <image src="/images/original/{{.ARecipe.Filepath}}"/>
+    <a href="/images/original/{{.ARecipe.Filepath}}">
+        <image src="/images/original/{{.ARecipe.Filepath}}"/>
+    </a>
 </div>
 
 {{ end }}
