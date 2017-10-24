@@ -3,20 +3,36 @@
 {{ define "content" }}
 
 <h1>Recipes List</h1>
-<div>
-    <form method="post" action="/deleterecipes">
+<div class="row">
+    <div class="col-4">
         <ul>
-            {{ range .Recipes }}
-            <li>
-                <div>
-                    <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>
-                    <a href="/recipes/{{.Id}}">{{ .Name }}</a>
-                </div>
-            </li>
+            {{ range .Categories}}
+            <li><a href="/categories/{{ .Id }}">{{ .Name }}</a></li>
             {{ end }}
         </ul>
-        <input type="submit" value="delete selected"/>
-    </form>
+    </div>
+
+    <div class="col-12">
+        <form method="post" action="/deleterecipes">
+            <ul>
+                {{ range .Recipes }}
+                <li>
+                    <div>
+                        <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>
+                        <a href="/recipes/{{.Id}}">{{ .Name }}</a>
+                    </div>
+                </li>
+                {{ end }}
+            </ul>
+            <select name="catId">
+                {{ range .Categories }}
+                <option value="{{ .Id }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+            <button name="changeCat">Change</button>
+            <button name="delete" value="delete selected">Delete</button>
+        </form>
+    </div>
 </div>
 
 {{ end }}

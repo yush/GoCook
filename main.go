@@ -45,6 +45,7 @@ func main() {
 	router.POST("/signin", LoginUser)
 	router.GET("/signup", SignupRoute)
 	router.POST("/signup", NewUser)
+	router.GET("/categories/:id", ListRecipesByCategories)
 	router.GET("/categories", ListCategories)
 	router.GET("/newcategory", NewCategories)
 	router.POST("/categories", PostNewCategories)
@@ -140,51 +141,117 @@ func LogoutUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params)
 }
 
 func NewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	if err := templates["newCategory"].Execute(res, nil); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
+	session, err := sessions.LoggedInUser(req)
+	if err != nil {
+		redirectToLogin(res)
+	} else {
+		data := struct {
+			ASession *Session
+		}{
+			session,
+		}
+		if err := templates["newCategory"].Execute(res, data); err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
 func ListCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	db := getDb()
-	defer db.Close()
-
-	user_id := 1
-	categories := GetAllCategories(db, user_id)
-	if err := templates["listCategories"].Execute(res, categories); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	db := getDb()
-	defer db.Close()
-
-	NewCategory(db, req.FormValue("name"), 1)
-	http.Redirect(res, req, "/categories", http.StatusMovedPermanently)
-}
-
-func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	res.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 1))
-	user, err := sessions.LoggedInUser(req)
+	session, err := sessions.LoggedInUser(req)
 	if err != nil {
 		redirectToLogin(res)
 	} else {
 		db := getDb()
 		defer db.Close()
 
-		recipes := GetAllRecipes(db, user.UserId)
+		categories := GetAllCategories(db, session.UserId)
+		data := struct {
+			Categories []Category
+			ASession   *Session
+		}{
+			categories,
+			session,
+		}
+		if err := templates["listCategories"].Execute(res, data); err != nil {
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	session, err := sessions.LoggedInUser(req)
+	if err != nil {
+		redirectToLogin(res)
+	} else {
+		db := getDb()
+		defer db.Close()
+
+		NewCategory(db, req.FormValue("name"), session.UserId)
+		http.Redirect(res, req, "/categories", http.StatusMovedPermanently)
+	}
+}
+
+func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	res.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 1))
+	session, err := sessions.LoggedInUser(req)
+	if err != nil {
+		redirectToLogin(res)
+	} else {
+		db := getDb()
+		defer db.Close()
+
 		Sess, err := sessions.LoggedInUser(req)
 		if err != nil {
 			redirectToLogin(res)
 		} else {
+			recipes := GetAllRecipes(db, session.UserId)
+			categories := GetAllCategories(db, session.UserId)
 
 			data := struct {
-				Recipes  []Recipe
-				ASession *Session
+				ASession   *Session
+				Recipes    []Recipe
+				Categories []Category
 			}{
-				recipes,
 				Sess,
+				recipes,
+				categories,
+			}
+
+			if err := templates["recipes"].Execute(res, data); err != nil {
+				http.Error(res, err.Error(), http.StatusInternalServerError)
+			}
+		}
+	}
+}
+
+func ListRecipesByCategories(res http.ResponseWriter, req *http.Request, p httprouter.Params) {
+	res.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 1))
+	session, err := sessions.LoggedInUser(req)
+	if err != nil {
+		redirectToLogin(res)
+	} else {
+		db := getDb()
+		defer db.Close()
+
+		Sess, err := sessions.LoggedInUser(req)
+		if err != nil {
+			redirectToLogin(res)
+		} else {
+			idCat, err := strconv.Atoi(p.ByName("id"))
+			if err != nil {
+				println(err)
+			}
+			recipes := GetAllRecipesForCat(db, session.UserId, uint(idCat))
+			categories := GetAllCategories(db, session.UserId)
+
+			data := struct {
+				ASession   *Session
+				Recipes    []Recipe
+				Categories []Category
+			}{
+				Sess,
+				recipes,
+				categories,
 			}
 
 			if err := templates["recipes"].Execute(res, data); err != nil {
@@ -195,10 +262,21 @@ func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Param
 }
 
 func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	var Action string
+
+	s, _ := sessions.LoggedInUser(req)
 	db := getDb()
 	defer db.Close()
 
 	req.ParseForm()
+	for iAction := range req.PostForm {
+		if strings.Contains(iAction, "delete") {
+			Action = "delete"
+		} else if strings.Contains(iAction, "changeCat") {
+			Action = "changeCat"
+		}
+	}
+
 	for i := range req.PostForm {
 		if strings.Contains(i, "check-") {
 			strIdRecipe := strings.TrimPrefix(i, "check-")
@@ -207,11 +285,23 @@ func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter
 				log.Println(err)
 			}
 			recipe := GetRecipe(db, idRecipe)
-			RemoveFile(recipe.Filepath)
-			DeleteRecipe(db, idRecipe)
+			if Action == "delete" {
+				RemoveFile(recipe.Filepath)
+				DeleteRecipe(db, s.UserId, uint(idRecipe))
+			} else if Action == "changeCat" {
+				idCat, errConv := strconv.Atoi(req.PostForm.Get("catId"))
+				if errConv != nil {
+					log.Println(errConv)
+				}
+				err = UpdateCategoryDetails(db, s.UserId, idRecipe, idCat)
+				if err != nil {
+					println(err)
+				}
+			}
 		}
 	}
 	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+
 }
 
 func GetRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.Params) {

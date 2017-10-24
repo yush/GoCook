@@ -13,12 +13,12 @@ import (
 
 type Session struct {
 	SessionID string
-	UserId    int
+	UserId    uint
 	Email     string
 }
 
 type User struct {
-	Id       int
+	Id       uint
 	Username string
 	Email    string
 	Password string

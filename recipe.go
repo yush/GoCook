@@ -33,14 +33,8 @@ func checkErr(err error) {
 	}
 }
 
-func GetAllRecipes(db *sql.DB, userId int) []Recipe {
+func retrieveRecipesFromQuery(rows *sql.Rows) []Recipe {
 	recipes := make([]Recipe, 0, 10)
-	db.Begin()
-	rows, err := db.Query("select id, name, filepath from recipes where OWNERID = ?", userId)
-
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	for rows.Next() {
 		var r Recipe
@@ -57,9 +51,35 @@ func GetAllRecipes(db *sql.DB, userId int) []Recipe {
 	return recipes
 }
 
-func Insert(db *sql.DB, userId int, name string, filename string) {
+func GetAllRecipes(db *sql.DB, userId uint) []Recipe {
+
+	db.Begin()
+	rows, err := db.Query("select recipes.id, name, filepath from recipes join"+
+		" CATEGORIES_DETAILS on recipes.ID = RECIPE_ID "+
+		"WHERE CATEGORIES_DETAILS.USER_ID = ?", userId)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return retrieveRecipesFromQuery(rows)
+}
+
+func GetAllRecipesForCat(db *sql.DB, userId uint, CatId uint) []Recipe {
+	db.Begin()
+	rows, err := db.Query("select recipes.id, name, filepath from recipes join"+
+		" CATEGORIES_DETAILS on recipes.ID = RECIPE_ID "+
+		"WHERE CATEGORIES_DETAILS.USER_ID = ? AND CATEGORY_ID = ?", userId, CatId)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return retrieveRecipesFromQuery(rows)
+}
+
+func Insert(db *sql.DB, userId uint, name string, filename string) uint {
 	// INSERT
-	var newId int
+	var newId uint
 	tx, err := db.Begin()
 	if err != nil {
 		log.Fatal(err)
@@ -76,6 +96,7 @@ func Insert(db *sql.DB, userId int, name string, filename string) {
 		log.Fatal(err)
 	}
 	tx.Commit()
+	return newId
 }
 
 func GetRecipe(db *sql.DB, id int) Recipe {
@@ -87,12 +108,23 @@ func GetRecipe(db *sql.DB, id int) Recipe {
 	return recipe
 }
 
-func UploadRecipe(db *sql.DB, userId int, img image.Image, handler *multipart.FileHeader, recipeName string) {
-	resizeAndAddFile(handler.Filename, img)
-	Insert(db, userId, recipeName, handler.Filename)
+func UpdateRecipe(db *sql.DB, recipe Recipe) error {
+	_, err := db.Exec("UPDATE RECIPES SET NAME= ? WHERE ID = 33", recipe.Name, recipe.Id)
+	return err
+
 }
 
-func ImportRecipes(db *sql.DB, userId int, dirname string) {
+func UploadRecipe(db *sql.DB, userId uint, img image.Image, handler *multipart.FileHeader, recipeName string) {
+	resizeAndAddFile(handler.Filename, img)
+	newId := Insert(db, userId, recipeName, handler.Filename)
+
+	err := InsertCategoryDetails(db, userId, newId, 0)
+	if err != nil {
+		println(err)
+	}
+}
+
+func ImportRecipes(db *sql.DB, userId uint, dirname string) {
 	var IsSupportedFormat bool
 	existingFiles, err := ioutil.ReadDir(dirname)
 	checkErr(err)
@@ -178,25 +210,41 @@ func RemoveFile(filename string) {
 	}
 }
 
-func DeleteRecipe(db *sql.DB, id int) {
+func DeleteRecipe(db *sql.DB, userId uint, recipeId uint) error {
+	Failed := false
 	tx, err := db.Begin()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	stmt, err := tx.Prepare("DELETE FROM RECIPES where ID=?")
+	stmtRecipe, err := tx.Prepare("DELETE FROM RECIPES where ID=?")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	defer stmt.Close()
-	_, err = stmt.Exec(id)
+	defer stmtRecipe.Close()
+
+	stmtCatDetails, err := tx.Prepare("DELETE FROM CATEGORIES_DETAILS WHERE USER_ID = ? AND RECIPE_ID = ?")
+
+	_, err = stmtRecipe.Exec(recipeId)
 	if err != nil {
-		log.Fatal(err)
+		Failed = true
 	}
-	tx.Commit()
+
+	_, err = stmtCatDetails.Exec(userId, userId, recipeId)
+	if err != nil {
+		Failed = true
+	}
+
+	if !Failed {
+		tx.Commit()
+	} else {
+		tx.Rollback()
+		return err
+	}
+	return nil
 }
 
-func NewCategory(db *sql.DB, name string, user_id int) {
+func NewCategory(db *sql.DB, name string, user_id uint) {
 	var newId int
 	db.Begin()
 	defer db.Close()
@@ -208,7 +256,7 @@ func NewCategory(db *sql.DB, name string, user_id int) {
 	}
 }
 
-func GetAllCategories(db *sql.DB, user_id int) []Category {
+func GetAllCategories(db *sql.DB, user_id uint) []Category {
 	db.Begin()
 	defer db.Close()
 
@@ -223,4 +271,19 @@ func GetAllCategories(db *sql.DB, user_id int) []Category {
 		categories = append(categories, cat)
 	}
 	return categories
+}
+
+func InsertCategoryDetails(db *sql.DB, UserId uint, RecipeId uint, NewCatId int) error {
+	var newId uint
+	db.Begin()
+	defer db.Close()
+
+	db.QueryRow("SELECT MAX(ID) FROM CATEGORIES_DETAILS").Scan(&newId)
+	_, err := db.Exec("INSERT INTO CATEGORIES_DETAILS(ID, CATEGORY_ID, RECIPE_ID, USER_ID) VALUES (?, ?, ?, ?)", newId+1, NewCatId, RecipeId, UserId)
+	return err
+}
+
+func UpdateCategoryDetails(db *sql.DB, UserId uint, RecipeId int, NewCatId int) error {
+	_, err := db.Exec("UPDATE CATEGORIES_DETAILS SET CATEGORY_ID= ? WHERE USER_ID = ? AND RECIPE_ID = ?", NewCatId, UserId, RecipeId)
+	return err
 }
