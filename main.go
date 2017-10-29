@@ -3,7 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jasonlvhit/gocron"
 	"github.com/julienschmidt/httprouter"
+	"github.com/mattn/go-sqlite3"
 	_ "github.com/mattn/go-sqlite3"
 	"html"
 	"html/template"
@@ -12,8 +14,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"github.com/mattn/go-sqlite3"
-	"github.com/jasonlvhit/gocron"
 )
 
 var templates map[string]*template.Template

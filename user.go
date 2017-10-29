@@ -88,7 +88,8 @@ func GetUserByEmail(db *sql.DB, email string) *User {
 	r := db.QueryRow("SELECT ID, USERNAME, EMAIL, PASSWORD FROM USERS WHERE EMAIL = ?", email)
 	err := r.Scan(&user.Id, &user.Username, &user.Email, &user.Password)
 	if err != nil {
-		log.Print("User not %s found", email)
+		log.Printf("User %s not found", email)
+		log.Print(err)
 		return nil
 	} else {
 		return &user

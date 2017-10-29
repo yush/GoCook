@@ -1,9 +1,9 @@
 package main
 
 import (
-	"testing"
-	"image"
 	"github.com/stretchr/testify/assert"
+	"image"
+	"testing"
 )
 
 func TestResizeRecipeLandscape(t *testing.T) {

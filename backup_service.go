@@ -2,12 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"github.com/jlaffaye/ftp"
+	_ "github.com/jlaffaye/ftp"
+	"io/ioutil"
 	"log"
 	"os"
-	_"github.com/jlaffaye/ftp"
 	"time"
-	"github.com/jlaffaye/ftp"
-	"io/ioutil"
 )
 
 func BackupDb(backupFileName string) error {

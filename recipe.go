@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
 	"github.com/nfnt/resize"
 	"image"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"bufio"
 )
 
 type Recipe struct {
@@ -194,7 +194,7 @@ func resizeAndAddFile(name string, img image.Image) error {
 
 	toimg, _ := os.Create(BaseDir() + DirFileStorage() + name)
 	defer toimg.Close()
-	errEncode := jpeg.Encode(toimg, out, &jpeg.Options{jpeg.DefaultQuality})
+	errEncode := jpeg.Encode(toimg, out, &jpeg.Options{Quality: jpeg.DefaultQuality})
 	if errEncode != nil {
 		return errEncode
 	}
