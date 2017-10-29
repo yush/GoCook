@@ -2,23 +2,32 @@
 
 {{ define "content" }}
 
-<h1>Recipes List</h1>
+<script type="text/javascript">
+    function toggleAll() {
+        $("#checkAll").change(function () {
+            $("input:checkbox").prop('checked', $(this).prop("checked"));
+        });
+    }
+</script>
+
 <div class="row">
-    <div class="col-4">
-        <ul>
+    <div class="col-sm-3">
+        <h2>Categories </h2>
+        <ul class="list-unstyled">
             {{ range .Categories}}
             <li><a href="/categories/{{ .Id }}">{{ .Name }}</a></li>
             {{ end }}
         </ul>
     </div>
 
-    <div class="col-12">
+    <div class="col-sm-9">
+        <h2>Recipes</h2>
         <form method="post" action="/deleterecipes">
-            <ul>
+            <ul class="list-unstyled">
                 {{ range .Recipes }}
                 <li>
                     <div>
-                        <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>
+                        <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox" class="toggleCheck"/>
                         <a href="/recipes/{{.Id}}">{{ .Name }}</a>
                     </div>
                 </li>
@@ -31,6 +40,7 @@
             </select>
             <button name="changeCat">Change</button>
             <button name="delete" value="delete selected">Delete</button>
+            <label><input type="checkbox" id="checkAll" onclick="toggleAll()"/> Check all</label>
         </form>
     </div>
 </div>

@@ -2,21 +2,25 @@
 
 {{ define "content" }}
 
-<h1>Categories List</h1>
-<div>
-    <form method="post" action="/deleterecipes">
-        <ul>
-            {{ range .Categories }}
-            <li>
-                <div>
-                    <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>
-                    {{ .Name }}
-                </div>
-            </li>
-            {{ end }}
-        </ul>
-        <input type="submit" value="delete selected"/>
-    </form>
+
+<div class="row">
+    <div class="col-sm-9 col-sm-offset-3">
+        <h1>Categories List</h1>
+        <a href="/newcategory">New category</a>
+        <form method="post" action="/deleterecipes">
+            <ul class="list-unstyled">
+                {{ range .Categories }}
+                <li>
+                    <div>
+                        <input name="check-{{.Id}}" id="check-{{.Id}}" type="checkbox"/>
+                        {{ .Name }}
+                    </div>
+                </li>
+                {{ end }}
+            </ul>
+            <input type="submit" value="delete selected"/>
+        </form>
+    </div>
 </div>
 
 {{ end }}

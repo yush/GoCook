@@ -37,25 +37,33 @@ func init() {
 func main() {
 
 	router := httprouter.New()
-	router.ServeFiles("/public/*filepath", http.Dir(BaseDir()+"public/"))
-	router.ServeFiles("/images/*filepath", http.Dir(BaseDir()+"db/images/"))
-	router.GET("/import", ImportRoute)
-	router.GET("/out", LogoutUser)
+
+	// login
 	router.GET("/signin", SigninRoute)
 	router.POST("/signin", LoginUser)
 	router.GET("/signup", SignupRoute)
 	router.POST("/signup", NewUser)
+	router.GET("/out", LogoutUser)
+
+	// recipes
+	router.GET("/recipes", RecipesRoute)
+	router.GET("/newrecipe", GetNewRecipeHandler)
+	router.GET("/recipes/:id", GetRecipeHandler)
+	router.POST("/recipes", PutRecipeHandler)
+	router.POST("/deleterecipes", DeleteRecipesRoute)
+
+	// categories
 	router.GET("/categories/:id", ListRecipesByCategories)
 	router.GET("/categories", ListCategories)
 	router.GET("/newcategory", NewCategories)
 	router.POST("/categories", PostNewCategories)
-	router.GET("/recipes", RecipesRoute)
-	router.POST("/deleterecipes", DeleteRecipesRoute)
-	router.GET("/newrecipe", GetNewRecipeHandler)
-	router.GET("/recipes/:id", GetRecipeHandler)
-	router.POST("/recipes", PutRecipeHandler)
 	router.GET("/backup", BackupRoute)
 	router.GET("/", IndexRoute)
+
+	// services
+	router.GET("/import", ImportRoute)
+	router.ServeFiles("/public/*filepath", http.Dir(BaseDir()+"public/"))
+	router.ServeFiles("/images/*filepath", http.Dir(BaseDir()+"db/images/"))
 
 	gocron.Every(1).Day().At("05:00").Do(BackupToFTP)
 	gocron.Start()
@@ -272,8 +280,10 @@ func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter
 	for iAction := range req.PostForm {
 		if strings.Contains(iAction, "delete") {
 			Action = "delete"
+			break
 		} else if strings.Contains(iAction, "changeCat") {
 			Action = "changeCat"
+			break
 		}
 	}
 
@@ -358,7 +368,7 @@ func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 	if err != nil {
 		redirectToLogin(res)
 	} else {
-
+		req.ParseForm()
 		file, handler, err := req.FormFile("uploadfile")
 		if err != nil {
 			log.Println(err)
@@ -368,7 +378,7 @@ func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 		if errDecode != nil {
 			log.Println(errDecode)
 		}
-		UploadRecipe(db, session.UserId, img, handler, req.FormValue("name"))
+		UploadRecipe(db, session.UserId, img, handler.Filename, req.FormValue("name"))
 		http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 	}
 }
@@ -381,7 +391,10 @@ func ImportRoute(res http.ResponseWriter, req *http.Request, par httprouter.Para
 	if err != nil {
 		redirectToLogin(res)
 	} else {
-		ImportRecipes(db, user.UserId, BaseDir()+DirFileStorage())
+		err = ImportRecipes(db, user.UserId, BaseDir()+DirFileStorage())
+		if err != nil {
+			println(err)
+		}
 		RecipesRoute(res, req, par)
 	}
 }

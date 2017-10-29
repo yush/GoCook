@@ -9,10 +9,10 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
-	"mime/multipart"
 	"os"
 	"path"
 	"strings"
+	"bufio"
 )
 
 type Recipe struct {
@@ -86,12 +86,13 @@ func Insert(db *sql.DB, userId uint, name string, filename string) uint {
 	}
 
 	db.QueryRow("SELECT MAX(ID) FROM RECIPES").Scan(&newId)
+	newId = newId + 1
 	stmt, err := tx.Prepare("insert into RECIPES(ID, NAME, FILEPATH, OWNERID) values(?, ?, ?, ?)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	_, err = stmt.Exec(newId+1, name, filename, userId)
+	_, err = stmt.Exec(newId, name, filename, userId)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,9 +115,9 @@ func UpdateRecipe(db *sql.DB, recipe Recipe) error {
 
 }
 
-func UploadRecipe(db *sql.DB, userId uint, img image.Image, handler *multipart.FileHeader, recipeName string) {
-	resizeAndAddFile(handler.Filename, img)
-	newId := Insert(db, userId, recipeName, handler.Filename)
+func UploadRecipe(db *sql.DB, userId uint, img image.Image, fileName string, recipeName string) {
+	resizeAndAddFile(fileName, img)
+	newId := Insert(db, userId, recipeName, fileName)
 
 	err := InsertCategoryDetails(db, userId, newId, 0)
 	if err != nil {
@@ -124,12 +125,13 @@ func UploadRecipe(db *sql.DB, userId uint, img image.Image, handler *multipart.F
 	}
 }
 
-func ImportRecipes(db *sql.DB, userId uint, dirname string) {
+func ImportRecipes(db *sql.DB, userId uint, dirname string) error {
 	var IsSupportedFormat bool
+	DirImport := BaseDir() + DirFileImport()
 	existingFiles, err := ioutil.ReadDir(dirname)
 	checkErr(err)
 
-	files, err := ioutil.ReadDir(BaseDir() + DirFileImport())
+	files, err := ioutil.ReadDir(DirImport)
 	checkErr(err)
 	for _, fileInfo := range files {
 		IsExisting := false
@@ -158,15 +160,28 @@ func ImportRecipes(db *sql.DB, userId uint, dirname string) {
 			continue
 		}
 
-		Insert(db, userId, fileInfo.Name(), fileInfo.Name())
-		// Read all content of src to data
-		data, errLoad := ioutil.ReadFile(BaseDir() + DirFileImport() + fileInfo.Name())
-		checkErr(errLoad)
-		err := addFile(fileInfo.Name(), data)
-		checkErr(err)
-		os.Remove(BaseDir() + DirFileImport() + fileInfo.Name())
+		f, err := os.Open(DirImport + fileInfo.Name())
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		img, _, errDecode := image.Decode(bufio.NewReader(f))
+		if errDecode == nil {
+			recipeName := getRecipeNameFromFileName(fileInfo.Name())
+			UploadRecipe(db, userId, img, fileInfo.Name(), recipeName)
+			os.Remove(BaseDir() + DirFileImport() + fileInfo.Name())
+		} else {
+			println(errDecode)
+		}
 	}
+	return nil
 }
+
+func getRecipeNameFromFileName(FileName string) string {
+	return strings.TrimSuffix(FileName, path.Ext(FileName))
+}
+
 func addFile(filename string, data []byte) error {
 	// Write data to dst
 	newFile := BaseDir() + DirFileStorage() + filename
@@ -230,7 +245,7 @@ func DeleteRecipe(db *sql.DB, userId uint, recipeId uint) error {
 		Failed = true
 	}
 
-	_, err = stmtCatDetails.Exec(userId, userId, recipeId)
+	_, err = stmtCatDetails.Exec(userId, recipeId)
 	if err != nil {
 		Failed = true
 	}
@@ -265,6 +280,7 @@ func GetAllCategories(db *sql.DB, user_id uint) []Category {
 		log.Fatal(err)
 	}
 	categories := make([]Category, 0, 10)
+	categories = append(categories, Category{Id: 0, Name: "No category", User_id: user_id})
 	for rows.Next() {
 		var cat Category
 		rows.Scan(&cat.Id, &cat.Name)
@@ -275,8 +291,6 @@ func GetAllCategories(db *sql.DB, user_id uint) []Category {
 
 func InsertCategoryDetails(db *sql.DB, UserId uint, RecipeId uint, NewCatId int) error {
 	var newId uint
-	db.Begin()
-	defer db.Close()
 
 	db.QueryRow("SELECT MAX(ID) FROM CATEGORIES_DETAILS").Scan(&newId)
 	_, err := db.Exec("INSERT INTO CATEGORIES_DETAILS(ID, CATEGORY_ID, RECIPE_ID, USER_ID) VALUES (?, ?, ?, ?)", newId+1, NewCatId, RecipeId, UserId)
