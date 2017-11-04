@@ -415,14 +415,14 @@ func BackupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 }
 
 func loadTemplates() {
-	var baseTemplate = BaseDir() + "/views/layout/_base.html"
+	var baseTemplate = "./views/layout/_base.html"
 	templates = make(map[string]*template.Template)
-	templates["index"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/home/index.html"))
-	templates["signin"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/account/signin.html"))
-	templates["signup"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/account/signup.html"))
-	templates["recipes"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/recipes/list.html"))
-	templates["showRecipe"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/recipes/showRecipe.html"))
-	templates["newRecipe"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/recipes/newRecipe.html"))
-	templates["newCategory"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/categories/newCategory.html"))
-	templates["listCategories"] = template.Must(template.ParseFiles(baseTemplate, BaseDir()+"/views/categories/listCategories.html"))
+	templates["index"] = template.Must(template.ParseFiles(baseTemplate, "./views/home/index.html"))
+	templates["signin"] = template.Must(template.ParseFiles(baseTemplate, "./views/account/signin.html"))
+	templates["signup"] = template.Must(template.ParseFiles(baseTemplate, "./views/account/signup.html"))
+	templates["recipes"] = template.Must(template.ParseFiles(baseTemplate, "./views/recipes/list.html"))
+	templates["showRecipe"] = template.Must(template.ParseFiles(baseTemplate, "./views/recipes/showRecipe.html"))
+	templates["newRecipe"] = template.Must(template.ParseFiles(baseTemplate, "./views/recipes/newRecipe.html"))
+	templates["newCategory"] = template.Must(template.ParseFiles(baseTemplate, "./views/categories/newCategory.html"))
+	templates["listCategories"] = template.Must(template.ParseFiles(baseTemplate, "./views/categories/listCategories.html"))
 }
