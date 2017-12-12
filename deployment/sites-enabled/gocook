@@ -1,8 +1,32 @@
 server {
-    listen 80;
-    server_name cookbook.bricodeur.fr;
-    client_max_body_size 10M;
+	listen 80 default_server;
+	listen [::]:80 default_server;
+
+	server_name cookbook.bricodeur.fr;
+
+    location /.well-known/acme-challenge/ {
+        alias /var/run/acme/acme-challenge/;
+    }
+
+}
+
+# HTTPS server
+server {  
+    listen 443 ssl;
+    server_name cookbook.bricodeur.fr; 
+    client_max_body_size    70M;
+    keepalive_timeout       5;
+    charset utf-8;
+
+    ssl on;
+    ssl_certificate /var/lib/acme/live/cookbook.bricodeur.fr/fullchain;
+    ssl_certificate_key /var/lib/acme/live/cookbook.bricodeur.fr/privkey;
+
+    add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload";
+    add_header X-Frame-Options "SAMEORIGIN";
+
     location / {
         proxy_pass         http://127.0.0.1:3000;
     }
+
 }

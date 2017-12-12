@@ -1,0 +1,7 @@
+development:
+  driver: sqlite3
+  open: db/gocook.db3
+
+test:
+  driver: sqlite3
+  open: tests/db/gocook.test.db3
