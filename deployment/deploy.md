@@ -10,6 +10,10 @@ db
 ||- original
 |- gocook.db3
 
+# Crontab
+@reboot ./start.sh
+Every day restart
+
 # Update Database
 
 # copy

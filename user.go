@@ -109,9 +109,8 @@ func (s *SessionManagerMem) LoggedInUser(req *http.Request) (*Session, error) {
 	cookie, err := req.Cookie("Cookbook")
 	if err != nil {
 		return nil, errors.New("No cookies found")
-	} else {
-		sessionid = html.UnescapeString(cookie.Value)
 	}
+	sessionid = html.UnescapeString(cookie.Value)
 
 	CurrentSession, err := s.GetById(sessionid)
 	return CurrentSession, err
