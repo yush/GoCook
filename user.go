@@ -9,6 +9,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Session struct {
@@ -72,8 +74,9 @@ func CreateNewUser(db *sql.DB, email string, password string, passConf string) {
 
 	if password == passConf {
 		var newId int
+		hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		db.QueryRow("SELECT MAX(ID) FROM USERS").Scan(&newId)
-		_, err := db.Exec("INSERT INTO USERS(ID, USERNAME, EMAIL, PASSWORD) values (?, ?, ?,?)", newId, email, email, password)
+		_, err = db.Exec("INSERT INTO USERS(ID, USERNAME, EMAIL, PASSWORD) values (?, ?, ?,?)", newId+1, email, email, hash)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -102,6 +105,13 @@ func sessionId() string {
 		return ""
 	}
 	return base64.URLEncoding.EncodeToString(b)
+}
+
+func (user *User) IsSamePassword(PasswordToTest string) bool {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(PasswordToTest)); err != nil {
+		return false
+	}
+	return true
 }
 
 func (s *SessionManagerMem) LoggedInUser(req *http.Request) (*Session, error) {

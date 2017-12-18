@@ -8,6 +8,7 @@ import (
 	"image"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -108,14 +109,16 @@ func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 
 func LoginUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	user := GetUserByEmail(getDb(), req.FormValue("email"))
-	if user != nil {
-		session, _ := sessions.AddNew(user)
-		cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(session.SessionID), Path: "/", HttpOnly: true, MaxAge: 300}
-		http.SetCookie(res, &cookie)
-		http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
-	} else {
+	if user == nil {
 		redirectToLogin(res)
 	}
+	if !user.IsSamePassword(req.FormValue("password")) {
+		redirectToLogin(res)
+	}
+	session, _ := sessions.AddNew(user)
+	cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(session.SessionID), Path: "/", HttpOnly: true, MaxAge: 300}
+	http.SetCookie(res, &cookie)
+	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
 func redirectToLogin(res http.ResponseWriter) {
@@ -214,6 +217,7 @@ func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Param
 			redirectToLogin(res)
 		} else {
 			recipes := GetAllRecipes(db, session.UserId)
+			sort.Sort(ByName(recipes))
 			categories := GetAllCategories(db, session.UserId)
 
 			data := struct {
@@ -251,6 +255,7 @@ func ListRecipesByCategories(res http.ResponseWriter, req *http.Request, p httpr
 				println(err)
 			}
 			recipes := GetAllRecipesForCat(db, session.UserId, uint(idCat))
+			sort.Sort(ByName(recipes))
 			categories := GetAllCategories(db, session.UserId)
 
 			data := struct {

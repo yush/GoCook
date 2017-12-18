@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"database/sql"
-	"github.com/nfnt/resize"
 	"image"
 	_ "image/gif"
 	"image/jpeg"
@@ -13,6 +12,8 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/nfnt/resize"
 )
 
 type Recipe struct {
@@ -26,6 +27,12 @@ type Category struct {
 	Name    string
 	User_id uint
 }
+
+type ByName []Recipe
+
+func (a ByName) Len() int           { return len(a) }
+func (a ByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByName) Less(i, j int) bool { return strings.ToLower(a[i].Name) < strings.ToLower(a[j].Name) }
 
 func checkErr(err error) {
 	if err != nil {
