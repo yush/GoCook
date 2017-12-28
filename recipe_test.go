@@ -1,14 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/stretchr/testify/assert"
 	"image"
-	"testing"
-	"os"
 	"log"
-	"strings"
+	"os"
 	"os/exec"
-	"database/sql"
+	"strings"
+	"testing"
 )
 
 const TestDbName = "/db/gocook.test.db3"

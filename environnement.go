@@ -1,8 +1,6 @@
 package main
 
-import (
-	"os"
-)
+import ()
 
 const dir_import = "db/images/import/"
 const dir_original = "db/images/original/"
@@ -20,5 +18,10 @@ func DirFileStorage() string {
 }
 
 func BaseDir() string {
-	return os.Getenv("GOCOOK_BASEDIR")
+	var dir string
+	err := Conf.Get("dir", &dir)
+	if err != nil {
+		panic("file not found")
+	}
+	return dir
 }

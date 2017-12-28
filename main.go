@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/jasonlvhit/gocron"
+	"github.com/joshbetz/config"
 	"github.com/julienschmidt/httprouter"
 	"github.com/mattn/go-sqlite3"
 	_ "github.com/mattn/go-sqlite3"
@@ -21,6 +22,7 @@ import (
 var templates map[string]*template.Template
 var sessions *SessionManagerMem
 var Sqlite3conn []*sqlite3.SQLiteConn
+var Conf *config.Config
 
 func init() {
 	sql.Register("sqlite3_backup",
@@ -31,6 +33,7 @@ func init() {
 			},
 		})
 
+	Conf = config.New("config.json")
 	loadTemplates()
 	sessions = new(SessionManagerMem)
 	sessions.Sessions = make(map[string]Session)
