@@ -1,7 +1,7 @@
 development:
-  database:
-    host: localhost
+  database-path: /db/gocook.db3
   root: /home/clem/go/src/github.com/yush/GoCook/
-production:
-  database:
-    host: 192.168.1.1
+
+test:
+  database-path: /tests/db/gocook.test.db3
+  root: /home/clem/go/src/github.com/yush/GoCook/

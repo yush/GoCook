@@ -76,7 +76,7 @@ func main() {
 }
 
 func getDb() *sql.DB {
-	db, err := sql.Open("sqlite3", BaseDir()+"/db/gocook.db3")
+	db, err := sql.Open("sqlite3", DatabasePath())
 	if err != nil {
 		log.Println(err)
 	}

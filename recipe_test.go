@@ -11,7 +11,9 @@ import (
 	"testing"
 )
 
-const TestDbName = "/db/gocook.test.db3"
+func init() {
+	SetTestMode()
+}
 
 func TestResizeRecipeLandscape(t *testing.T) {
 	imgIn := image.NewRGBA(image.Rect(0, 0, 2000, 200))
@@ -28,7 +30,7 @@ func TestResizeRecipePortrait(t *testing.T) {
 }
 
 func createDatabase() {
-	os.Create(BaseDir() + TestDbName)
+	os.Create(DatabasePath())
 
 	commands := []string{
 		"go build -i -o ./tests/goose bitbucket.org/liamstask/goose/cmd/goose",
@@ -45,7 +47,7 @@ func createDatabase() {
 }
 
 func destroyDatabase() {
-	os.Remove(BaseDir() + TestDbName)
+	os.Remove(DatabasePath())
 }
 
 func TestMain(m *testing.M) {
@@ -58,7 +60,7 @@ func TestMain(m *testing.M) {
 }
 
 func getTestDb() *sql.DB {
-	db, err := sql.Open("sqlite3", BaseDir()+TestDbName)
+	db, err := sql.Open("sqlite3", DatabasePath())
 	if err != nil {
 		log.Println(err)
 	}
