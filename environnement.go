@@ -1,12 +1,26 @@
 package main
 
-import ()
+import (
+	"github.com/olebedev/config"
+	"log"
+)
 
 const dir_import = "db/images/import/"
 const dir_original = "db/images/original/"
 
-func init() {
+var Conf *config.Config
 
+func init() {
+	var globalConf *config.Config
+	var err error
+	if globalConf, err = config.ParseYamlFile("config.yml"); err != nil {
+		log.Panic(err)
+	}
+
+	Conf, err = globalConf.Get("development")
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func DirFileImport() string {
@@ -18,8 +32,7 @@ func DirFileStorage() string {
 }
 
 func BaseDir() string {
-	var dir string
-	err := Conf.Get("dir", &dir)
+	dir, err := Conf.String("root")
 	if err != nil {
 		panic("file not found")
 	}
