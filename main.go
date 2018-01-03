@@ -84,10 +84,11 @@ func getDb() *sql.DB {
 }
 
 func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	s, _ := sessions.LoggedInUser(req)
 	data := struct {
 		ASession *Session
 	}{
-		nil,
+		s,
 	}
 	if err := templates["index"].Execute(res, data); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
