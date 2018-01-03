@@ -122,14 +122,15 @@ func UpdateRecipe(db *sql.DB, recipe Recipe) error {
 
 }
 
-func UploadRecipe(db *sql.DB, userId uint, img image.Image, fileName string, recipeName string) {
+func UploadRecipe(db *sql.DB, userId uint, img image.Image, fileName string, recipeName string) int {
 	resizeAndAddFile(fileName, img)
-	newId := Insert(db, userId, recipeName, fileName)
+	newID := Insert(db, userId, recipeName, fileName)
 
-	err := InsertCategoryDetails(db, userId, newId, 0)
+	err := InsertCategoryDetails(db, userId, newID, 0)
 	if err != nil {
 		println(err)
 	}
+	return int(newID)
 }
 
 func ImportRecipes(db *sql.DB, userId uint, dirname string) error {

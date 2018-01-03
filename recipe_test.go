@@ -1,7 +1,7 @@
 package main
 
 import (
-	"database/sql"
+	"bufio"
 	"github.com/stretchr/testify/assert"
 	"image"
 	"log"
@@ -59,18 +59,27 @@ func TestMain(m *testing.M) {
 	os.Exit(ret)
 }
 
-func getTestDb() *sql.DB {
-	db, err := sql.Open("sqlite3", DatabasePath())
-	if err != nil {
-		log.Println(err)
-	}
-	return db
+func TestInsert(t *testing.T) {
+	db := getDb()
+	defer db.Close()
+	NewRecipeID := Insert(db, 0, "Recipe1", "test/img1.jpg")
+	recipe := GetRecipe(db, int(NewRecipeID))
+	assert.Equal(t, "Recipe1", recipe.Name)
 }
 
-func TestInsert(t *testing.T) {
-	db := getTestDb()
+func TestUploadRecipe(t *testing.T) {
+	db := getDb()
 	defer db.Close()
-	NewRecipeId := Insert(db, 0, "Recipe1", "test/img1.jpg")
-	recipe := GetRecipe(db, int(NewRecipeId))
-	assert.Equal(t, "Recipe1", recipe.Name)
+
+	f, err := os.Open(BaseDir() + "tests/images/img1.jpg")
+	if err != nil {
+		t.Error(err)
+	}
+	img, _, errDecode := image.Decode(bufio.NewReader(f))
+	if errDecode != nil {
+		t.Error(err)
+	}
+	newID := UploadRecipe(db, 0, img, "img1.jpg", "recipe1")
+	newRecipe := GetRecipe(db, newID)
+	assert.Equal(t, "recipe1", newRecipe.Name)
 }
