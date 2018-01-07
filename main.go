@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/jasonlvhit/gocron"
-	"github.com/julienschmidt/httprouter"
 	"github.com/mattn/go-sqlite3"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -38,34 +38,38 @@ func init() {
 
 func main() {
 
-	router := httprouter.New()
+	router := mux.NewRouter()
 
 	// login
-	router.GET("/signin", SigninRoute)
-	router.POST("/signin", LoginUser)
-	router.GET("/signup", SignupRoute)
-	router.POST("/signup", NewUser)
-	router.GET("/out", LogoutUser)
+	router.HandleFunc("/signin", SigninRoute).Methods("GET")
+	router.HandleFunc("/out", LogoutUser).Methods("GET")
+	router.HandleFunc("/signin", LoginUser).Methods("POST")
+	router.HandleFunc("/signup", SignupRoute).Methods("GET")
+	router.HandleFunc("/signup", NewUser).Methods("POST")
 
 	// recipes
-	router.GET("/recipes", RecipesRoute)
-	router.GET("/newrecipe", GetNewRecipeHandler)
-	router.GET("/recipes/:id", GetRecipeHandler)
-	router.POST("/recipes", PutRecipeHandler)
-	router.POST("/deleterecipes", DeleteRecipesRoute)
+	router.HandleFunc("/recipes", RecipesRoute).Methods("GET")
+	router.HandleFunc("/newrecipe", GetNewRecipeHandler).Methods("GET")
+	router.HandleFunc("/recipes/{id}", GetRecipeHandler).Methods("GET")
+	router.HandleFunc("/recipes/{id}/image", GetRecipeImageHandler).Methods("GET")
+	router.HandleFunc("/recipes", PutRecipeHandler).Methods("POST")
+	router.HandleFunc("/deleterecipes", DeleteRecipesRoute).Methods("POST")
 
 	// categories
-	router.GET("/categories/:id", ListRecipesByCategories)
-	router.GET("/categories", ListCategories)
-	router.GET("/newcategory", NewCategories)
-	router.POST("/categories", PostNewCategories)
-	router.GET("/backup", BackupRoute)
-	router.GET("/", IndexRoute)
+	router.HandleFunc("/categories/{id}", ListRecipesByCategories).Methods("GET")
+	router.HandleFunc("/categories", ListCategories).Methods("GET")
+	router.HandleFunc("/newcategory", NewCategories).Methods("GET")
+	router.HandleFunc("/categories", PostNewCategories).Methods("POST")
+	router.HandleFunc("/backup", BackupRoute).Methods("GET")
 
 	// services
-	router.GET("/import", ImportRoute)
-	router.ServeFiles("/public/*filepath", http.Dir(BaseDir()+"public/"))
-	router.ServeFiles("/images/*filepath", http.Dir(BaseDir()+"db/images/"))
+	router.HandleFunc("/import", ImportRoute).Methods("GET")
+
+	fsPublic := http.FileServer(http.Dir("./public"))
+	router.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fsPublic))
+
+	// default route
+	router.HandleFunc("/", IndexRoute).Methods("GET")
 
 	gocron.Every(1).Day().At("05:00").Do(BackupToFTP)
 	gocron.Start()
@@ -83,7 +87,7 @@ func getDb() *sql.DB {
 	return db
 }
 
-func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func IndexRoute(res http.ResponseWriter, req *http.Request) {
 	s, _ := sessions.LoggedInUser(req)
 	data := struct {
 		ASession *Session
@@ -95,7 +99,7 @@ func IndexRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params)
 	}
 }
 
-func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func SigninRoute(res http.ResponseWriter, req *http.Request) {
 	data := struct {
 		ASession *Session
 		Message  string
@@ -108,7 +112,7 @@ func SigninRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params
 	}
 }
 
-func LoginUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func LoginUser(res http.ResponseWriter, req *http.Request) {
 	user := GetUserByEmail(getDb(), req.FormValue("email"))
 	if user == nil {
 		redirectToLogin(res)
@@ -135,25 +139,26 @@ func redirectToLogin(res http.ResponseWriter) {
 	}
 }
 
-func SignupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func SignupRoute(res http.ResponseWriter, req *http.Request) {
 	if err := templates["signup"].Execute(res, nil); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func LogoutUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func LogoutUser(res http.ResponseWriter, req *http.Request) {
 	s, err := sessions.LoggedInUser(req)
 	if err != nil {
 		redirectToLogin(res)
 	} else {
 		sessions.Remove(s.Email)
-		cookie := http.Cookie{Name: "Cookbook", Value: "", Path: "/", HttpOnly: true, MaxAge: 300}
+		cookie :=
+			http.Cookie{Name: "Cookbook", Value: "", Path: "/", HttpOnly: true, MaxAge: 300}
 		http.SetCookie(res, &cookie)
 	}
 	http.Redirect(res, req, "/", http.StatusMovedPermanently)
 }
 
-func NewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func NewCategories(res http.ResponseWriter, req *http.Request) {
 	session, err := sessions.LoggedInUser(req)
 	if err != nil {
 		redirectToLogin(res)
@@ -169,7 +174,7 @@ func NewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Para
 	}
 }
 
-func ListCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func ListCategories(res http.ResponseWriter, req *http.Request) {
 	session, err := sessions.LoggedInUser(req)
 	if err != nil {
 		redirectToLogin(res)
@@ -191,7 +196,7 @@ func ListCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Par
 	}
 }
 
-func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func PostNewCategories(res http.ResponseWriter, req *http.Request) {
 	session, err := sessions.LoggedInUser(req)
 	if err != nil {
 		redirectToLogin(res)
@@ -204,7 +209,7 @@ func PostNewCategories(res http.ResponseWriter, req *http.Request, _ httprouter.
 	}
 }
 
-func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func RecipesRoute(res http.ResponseWriter, req *http.Request) {
 	res.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 1))
 	session, err := sessions.LoggedInUser(req)
 	if err != nil {
@@ -238,7 +243,7 @@ func RecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Param
 	}
 }
 
-func ListRecipesByCategories(res http.ResponseWriter, req *http.Request, p httprouter.Params) {
+func ListRecipesByCategories(res http.ResponseWriter, req *http.Request) {
 	res.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", 1))
 	session, err := sessions.LoggedInUser(req)
 	if err != nil {
@@ -251,7 +256,8 @@ func ListRecipesByCategories(res http.ResponseWriter, req *http.Request, p httpr
 		if err != nil {
 			redirectToLogin(res)
 		} else {
-			idCat, err := strconv.Atoi(p.ByName("id"))
+			vars := mux.Vars(req)
+			idCat, err := strconv.Atoi(vars["id"])
 			if err != nil {
 				println(err)
 			}
@@ -276,7 +282,7 @@ func ListRecipesByCategories(res http.ResponseWriter, req *http.Request, p httpr
 	}
 }
 
-func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request) {
 	var Action string
 
 	s, _ := sessions.LoggedInUser(req)
@@ -318,25 +324,23 @@ func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request, _ httprouter
 		}
 	}
 	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
-
 }
 
-func GetRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.Params) {
-	db := getDb()
-	defer db.Close()
-
-	idRecipe, err := strconv.Atoi(p.ByName("id"))
-	if err != nil {
-		log.Println(err)
-	}
-
-	recipe := GetRecipe(db, idRecipe)
-
+func GetRecipeHandler(res http.ResponseWriter, req *http.Request) {
 	sess, err := sessions.LoggedInUser(req)
 	if err != nil {
 		redirectToLogin(res)
 	} else {
+		db := getDb()
+		defer db.Close()
 
+		vars := mux.Vars(req)
+		idRecipe, err := strconv.Atoi(vars["id"])
+		if err != nil {
+			log.Println(err)
+		}
+
+		recipe := GetRecipe(db, idRecipe)
 		data := struct {
 			ARecipe  Recipe
 			ASession *Session
@@ -351,7 +355,26 @@ func GetRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 	}
 }
 
-func GetNewRecipeHandler(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func GetRecipeImageHandler(res http.ResponseWriter, req *http.Request) {
+	_, err := sessions.LoggedInUser(req)
+	if err != nil {
+		redirectToLogin(res)
+	} else {
+		db := getDb()
+		defer db.Close()
+
+		vars := mux.Vars(req)
+		idRecipe, err := strconv.Atoi(vars["id"])
+		if err != nil {
+			log.Println(err)
+		}
+
+		recipe := GetRecipe(db, idRecipe)
+		http.ServeFile(res, req, BaseDir()+DirFileStorage()+recipe.Filepath)
+	}
+}
+
+func GetNewRecipeHandler(res http.ResponseWriter, req *http.Request) {
 	session, err := sessions.LoggedInUser(req)
 	if err != nil {
 		redirectToLogin(res)
@@ -367,7 +390,7 @@ func GetNewRecipeHandler(res http.ResponseWriter, req *http.Request, _ httproute
 	}
 }
 
-func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.Params) {
+func PutRecipeHandler(res http.ResponseWriter, req *http.Request) {
 	db := getDb()
 	defer db.Close()
 
@@ -390,7 +413,7 @@ func PutRecipeHandler(res http.ResponseWriter, req *http.Request, p httprouter.P
 	}
 }
 
-func ImportRoute(res http.ResponseWriter, req *http.Request, par httprouter.Params) {
+func ImportRoute(res http.ResponseWriter, req *http.Request) {
 	db := getDb()
 	defer db.Close()
 
@@ -402,11 +425,11 @@ func ImportRoute(res http.ResponseWriter, req *http.Request, par httprouter.Para
 		if err != nil {
 			println(err)
 		}
-		RecipesRoute(res, req, par)
+		RecipesRoute(res, req)
 	}
 }
 
-func NewUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func NewUser(res http.ResponseWriter, req *http.Request) {
 	db := getDb()
 	defer db.Close()
 
@@ -414,7 +437,7 @@ func NewUser(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
 }
 
-func BackupRoute(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+func BackupRoute(res http.ResponseWriter, req *http.Request) {
 	err := BackupDb("test")
 	if err != nil {
 		log.Println(err)
