@@ -65,7 +65,7 @@ func main() {
 	// services
 	router.HandleFunc("/import", ImportRoute).Methods("GET")
 
-	fsPublic := http.FileServer(http.Dir("./public"))
+	fsPublic := http.FileServer(http.Dir(BaseDir() + "/public"))
 	router.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fsPublic))
 
 	// default route
@@ -154,8 +154,8 @@ func LogoutUser(res http.ResponseWriter, req *http.Request) {
 		cookie :=
 			http.Cookie{Name: "Cookbook", Value: "", Path: "/", HttpOnly: true, MaxAge: 300}
 		http.SetCookie(res, &cookie)
+		http.Redirect(res, req, "/", http.StatusOK)
 	}
-	http.Redirect(res, req, "/", http.StatusMovedPermanently)
 }
 
 func NewCategories(res http.ResponseWriter, req *http.Request) {
