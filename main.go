@@ -123,7 +123,7 @@ func LoginUser(res http.ResponseWriter, req *http.Request) {
 	session, _ := sessions.AddNew(user)
 	cookie := http.Cookie{Name: "Cookbook", Value: html.EscapeString(session.SessionID), Path: "/", HttpOnly: true, MaxAge: 300}
 	http.SetCookie(res, &cookie)
-	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+	http.Redirect(res, req, "/recipes", http.StatusFound)
 }
 
 func redirectToLogin(res http.ResponseWriter) {
@@ -154,7 +154,7 @@ func LogoutUser(res http.ResponseWriter, req *http.Request) {
 		cookie :=
 			http.Cookie{Name: "Cookbook", Value: "", Path: "/", HttpOnly: true, MaxAge: 300}
 		http.SetCookie(res, &cookie)
-		http.Redirect(res, req, "/", http.StatusOK)
+		http.Redirect(res, req, "/", http.StatusFound)
 	}
 }
 
@@ -205,7 +205,7 @@ func PostNewCategories(res http.ResponseWriter, req *http.Request) {
 		defer db.Close()
 
 		NewCategory(db, req.FormValue("name"), session.UserId)
-		http.Redirect(res, req, "/categories", http.StatusMovedPermanently)
+		http.Redirect(res, req, "/categories", http.StatusFound)
 	}
 }
 
@@ -323,7 +323,7 @@ func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}
-	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+	http.Redirect(res, req, "/recipes", http.StatusFound)
 }
 
 func GetRecipeHandler(res http.ResponseWriter, req *http.Request) {
@@ -409,7 +409,7 @@ func PutRecipeHandler(res http.ResponseWriter, req *http.Request) {
 			log.Println(errDecode)
 		}
 		UploadRecipe(db, session.UserId, img, handler.Filename, req.FormValue("name"))
-		http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+		http.Redirect(res, req, "/recipes", http.StatusFound)
 	}
 }
 
@@ -434,7 +434,7 @@ func NewUser(res http.ResponseWriter, req *http.Request) {
 	defer db.Close()
 
 	CreateNewUser(db, req.FormValue("email"), req.FormValue("pass"), req.FormValue("passConf"))
-	http.Redirect(res, req, "/recipes", http.StatusMovedPermanently)
+	http.Redirect(res, req, "/recipes", http.StatusFound)
 }
 
 func BackupRoute(res http.ResponseWriter, req *http.Request) {
