@@ -2,13 +2,18 @@
 
 {{ define "content" }}
 
-<h1>New recipe</h1>
+<div id="newRecipe">
+    <h1>New recipe</h1>
 <div>
+    <div v-text="message"></div>
+
+    </div>
     <form enctype="multipart/form-data" action="/recipes" method="POST">
         <input id="name" name="name" />
         <input type="file" name="uploadfile" multiple/>
         <input type="submit" value="upload">
     </form>
+</div>
 </div>
 
 {{ end }}
