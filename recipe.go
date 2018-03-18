@@ -117,7 +117,7 @@ func GetRecipe(db *sql.DB, id int) Recipe {
 }
 
 func UpdateRecipe(db *sql.DB, recipe Recipe) error {
-	_, err := db.Exec("UPDATE RECIPES SET NAME= ? WHERE ID = 33", recipe.Name, recipe.Id)
+	_, err := db.Exec("UPDATE RECIPES SET NAME= ? WHERE ID = ?", recipe.Name, recipe.Id)
 	return err
 
 }

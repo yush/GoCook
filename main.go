@@ -2,10 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
 	"image"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"sort"
@@ -21,6 +23,11 @@ import (
 var templates map[string]*template.Template
 var sessions *SessionManagerMem
 var Sqlite3conn []*sqlite3.SQLiteConn
+
+type RecipeJSON struct {
+	ID         int
+	RecipeName string
+}
 
 func init() {
 	sql.Register("sqlite3_backup",
@@ -52,8 +59,9 @@ func main() {
 	router.HandleFunc("/newrecipe", GetNewRecipeHandler).Methods("GET")
 	router.HandleFunc("/recipes/{id}", GetRecipeHandler).Methods("GET")
 	router.HandleFunc("/recipes/{id}/image", GetRecipeImageHandler).Methods("GET")
-	router.HandleFunc("/recipes", PutRecipeHandler).Methods("POST")
+	router.HandleFunc("/recipes", PostRecipeHandler).Methods("POST")
 	router.HandleFunc("/deleterecipes", DeleteRecipesRoute).Methods("POST")
+	router.HandleFunc("/recipes/{id}", PutRecipeHandler).Methods("POST")
 
 	// categories
 	router.HandleFunc("/categories/{id}", ListRecipesByCategories).Methods("GET")
@@ -282,6 +290,29 @@ func ListRecipesByCategories(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func PutRecipeHandler(res http.ResponseWriter, req *http.Request) {
+	_, err := sessions.LoggedInUser(req)
+
+	if err != nil {
+		redirectToLogin(res)
+	} else {
+		db := getDb()
+		defer db.Close()
+		x, _ := ioutil.ReadAll(req.Body)
+		recipejs := new(RecipeJSON)
+		json.Unmarshal([]byte(string(x)), &recipejs)
+		vars := mux.Vars(req)
+		idRecipe, err := strconv.Atoi(vars["id"])
+		if err != nil {
+			log.Println(err)
+		}
+
+		recipe := GetRecipe(db, idRecipe)
+		recipe.Name = recipejs.RecipeName
+		UpdateRecipe(db, recipe)
+	}
+}
+
 func DeleteRecipesRoute(res http.ResponseWriter, req *http.Request) {
 	var Action string
 
@@ -390,7 +421,7 @@ func GetNewRecipeHandler(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func PutRecipeHandler(res http.ResponseWriter, req *http.Request) {
+func PostRecipeHandler(res http.ResponseWriter, req *http.Request) {
 	db := getDb()
 	defer db.Close()
 
