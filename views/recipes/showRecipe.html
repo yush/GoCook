@@ -3,13 +3,7 @@
 {{ define "content" }}
 
 <div id="showRecipe">
-    <h1>{{.ARecipe.Name}}</h1><button v-on:click="updateRecipeName({{.ARecipe.Id}})">Update</button>
-    <input v-model="recipeName"></input>
-    <div>
-        <a href="/recipes/{{.ARecipe.Id}}/image">
-            <image src="/recipes/{{.ARecipe.Id}}/image"/>
-        </a>
-    </div>
+    <component-recipe name="{{ .ARecipe.Name }}" idrecipe="{{ .ARecipe.Id }}" ></component-recipe>
 </div>
 
 {{ end }}

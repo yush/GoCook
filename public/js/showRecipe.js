@@ -1,14 +1,24 @@
+Vue.component('component-recipe', {
+  props:['name', 'idrecipe'],
+  template: `
+    <div>
+      <h1>{{ name }} id {{ idrecipe }}</h1>
+      <button v-on:click="'updateRecipeName('+ idrecipe +')'">Update</button>
+      <div>
+        <a :href="'/recipes/' +idrecipe+ '/image'">
+            <img :src="'/recipes/'+ idrecipe +'/image'"/>
+        </a>
+      </div>      
+    </div>
+    `
+})
+
 var app = new Vue({
   
   el: '#showRecipe',
  
-  mounted: function() {
-    console.log("new recipe mounted");
-  },
-  
-  data: {
-    recipeName: 'baba',
-    message: 'This string was updated on: ' + new Date()
+  created: function() {
+    console.log("new recipe created");
   },
 
   methods: {
