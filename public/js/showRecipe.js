@@ -1,16 +1,46 @@
 Vue.component('component-recipe', {
-  props:['name', 'idrecipe'],
+
+  data: function() {
+    return {
+      recipeName: this.initialRecipeName,
+      recipeId: this.initialRecipeId,
+      show: false
+    }
+  },
+
+  props:['initialRecipeName', 'initialRecipeId'],
   template: `
     <div>
-      <h1>{{ name }} id {{ idrecipe }}</h1>
-      <button v-on:click="'updateRecipeName('+ idrecipe +')'">Update</button>
+      <div v-show="!show">
+        <h1>{{ recipeName }}</h1>
+        <button v-on:click="show = !show" >Edit</button>
+      </div>
+      <div v-show="show">
+        <input v-model="recipeName" />      
+        <button v-on:click="updateRecipeName()">Update</button>
+      </div>
       <div>
-        <a :href="'/recipes/' +idrecipe+ '/image'">
-            <img :src="'/recipes/'+ idrecipe +'/image'"/>
+        <a :href="'/recipes/' +recipeId+ '/image'">
+            <img :src="'/recipes/'+ recipeId +'/image'"/>
         </a>
       </div>      
     </div>
-    `
+    `,
+
+    methods: {
+      updateRecipeName: function() {
+        console.log("recipe id:"+ this.recipeId + "name: "+this.recipeName);
+        // POST /someUrl
+        this.$http.post('/recipes/'+this.recipeId, {ID: this.recipeId, RecipeName: this.recipeName}).then(response => {
+  
+          this.show = false;
+  
+        }, response => {
+          // error callback
+        });
+      },
+    }    
+
 })
 
 var app = new Vue({
@@ -19,30 +49,5 @@ var app = new Vue({
  
   created: function() {
     console.log("new recipe created");
-  },
-
-  methods: {
-    updateRecipeName: function(aRecipeID) {
-      console.log("recipe id:"+ aRecipeID+ "name: "+this.$data.recipeName);
-
-      // POST /someUrl
-      this.$http.post('/recipes/'+aRecipeID, {ID: aRecipeID, RecipeName: this.$data.recipeName}).then(response => {
-
-        // get status
-        response.status;
-
-        // get status text
-        response.statusText;
-
-        // get 'Expires' header
-        response.headers.get('Expires');
-
-        // get body data
-        this.someData = response.body;
-
-      }, response => {
-        // error callback
-      });
-    },
   }
 })
