@@ -1,14 +1,13 @@
-Vue.component('component-recipe', {
-
+Vue.component("component-recipe", {
   data: function() {
     return {
       recipeName: this.initialRecipeName,
       recipeId: this.initialRecipeId,
       show: false
-    }
+    };
   },
 
-  props:['initialRecipeName', 'initialRecipeId'],
+  props: ["initialRecipeName", "initialRecipeId"],
   template: `
     <div>
       <div v-show="!show">
@@ -27,27 +26,31 @@ Vue.component('component-recipe', {
     </div>
     `,
 
-    methods: {
-      updateRecipeName: function() {
-        console.log("recipe id:"+ this.recipeId + "name: "+this.recipeName);
-        // POST /someUrl
-        this.$http.post('/recipes/'+this.recipeId, {ID: this.recipeId, RecipeName: this.recipeName}).then(response => {
-  
-          this.show = false;
-  
-        }, response => {
-          // error callback
-        });
-      },
-    }    
-
-})
+  methods: {
+    updateRecipeName: function() {
+      console.log("recipe id:" + this.recipeId + "name: " + this.recipeName);
+      // POST /someUrl
+      this.$http
+        .post("/recipes/" + this.recipeId, {
+          ID: this.recipeId,
+          RecipeName: this.recipeName
+        })
+        .then(
+          response => {
+            this.show = false;
+          },
+          response => {
+            // error callback
+          }
+        );
+    }
+  }
+});
 
 var app = new Vue({
-  
-  el: '#showRecipe',
- 
+  el: "#showRecipe",
+
   created: function() {
     console.log("new recipe created");
   }
-})
+});

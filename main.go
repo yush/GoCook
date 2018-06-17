@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -10,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -430,16 +432,31 @@ func PostRecipeHandler(res http.ResponseWriter, req *http.Request) {
 		redirectToLogin(res)
 	} else {
 		req.ParseForm()
-		file, handler, err := req.FormFile("uploadfile")
+		RecipeName := req.FormValue("name")
+		b64 := req.FormValue("uploadfile")
+		dec, err := base64.StdEncoding.DecodeString(b64)
 		if err != nil {
-			log.Println(err)
+			panic(err)
 		}
 
-		img, _, errDecode := image.Decode(file)
+		f, err := os.Create("myfilename")
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+
+		if _, err := f.Write(dec); err != nil {
+			panic(err)
+		}
+		if err := f.Sync(); err != nil {
+			panic(err)
+		}
+
+		img, _, errDecode := image.Decode(f)
 		if errDecode != nil {
 			log.Println(errDecode)
 		}
-		UploadRecipe(db, session.UserId, img, handler.Filename, req.FormValue("name"))
+		UploadRecipe(db, session.UserId, img, RecipeName, RecipeName)
 		http.Redirect(res, req, "/recipes", http.StatusFound)
 	}
 }
