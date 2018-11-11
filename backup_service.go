@@ -96,11 +96,11 @@ func BackupToFTP() {
 }
 
 func connectToBackupServer() (*ftp.ServerConn, error) {
-	c, err := ftp.DialTimeout("192.168.0.1:21", 5*time.Second)
+	c, err := ftp.DialTimeout("192.168.0.254:21", 5*time.Second)
 	if err != nil {
 		log.Println(err)
 	}
-	err = c.Login("anonymous", "anonymous")
+	err = c.Login("freebox", "freecook")
 	if err != nil {
 		log.Println(err)
 	}

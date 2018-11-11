@@ -1,21 +1,14 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
-    "version": "0.1.0",
-    "command": "bash",
-    "isShellCommand": true,
-    "showOutput": "always",
-    "args": [
-      "-c"
-    ],    
-    "tasks": [
-        {
-            "taskName": "go run",
-            "suppressTaskName": true,
-            "isBuildCommand": true,
-            "args": [
-              "env GOCOOK_BASEDIR=\"/home/clem/go/src/github.com/yush/GoCook\" go build && GoCook"
-            ]
-          }
-    ]
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "type": "shell",
+  "command": "go build && ./GoCook",
+  "problemMatchers": [
+    "$go"
+  ],
+  "group": {
+    "kind": "build",
+    "isDefault": true
+  }
 }
