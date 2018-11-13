@@ -55,7 +55,7 @@ func BackupFiles(test string) {
 
 func getBackupDirName() string {
 	t := time.Now()
-	return t.Format("2006-01-02-15-04-05")
+	return "FREE_HDD/Cookbook/" + t.Format("2006-01-02-15-04-05")
 }
 
 func BackupToFTP() {

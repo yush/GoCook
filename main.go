@@ -60,10 +60,10 @@ func main() {
 	router.HandleFunc("/categories", ListCategories).Methods("GET")
 	router.HandleFunc("/newcategory", NewCategories).Methods("GET")
 	router.HandleFunc("/categories", PostNewCategories).Methods("POST")
-	router.HandleFunc("/backup", BackupRoute).Methods("GET")
 
 	// services
 	router.HandleFunc("/import", ImportRoute).Methods("GET")
+	router.HandleFunc("/backup", BackupRoute).Methods("GET")
 
 	fsPublic := http.FileServer(http.Dir(BaseDir() + "/public"))
 	router.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fsPublic))
@@ -438,10 +438,7 @@ func NewUser(res http.ResponseWriter, req *http.Request) {
 }
 
 func BackupRoute(res http.ResponseWriter, req *http.Request) {
-	err := BackupDb("test")
-	if err != nil {
-		log.Println(err)
-	}
+	BackupToFTP()
 }
 
 func loadTemplates() {
