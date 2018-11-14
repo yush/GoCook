@@ -1,5 +1,9 @@
 development:
   database-path: /db/gocook.db3
+  backup-ftp-server: 192.168.0.254
+  backup-ftp-login: freebox
+  backup-ftp-password: freecook
+  backup-ftp-folder: FREE_HDD/Cookbook/
 
 test:
   database-path: /tests/db/gocook.test.db3

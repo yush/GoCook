@@ -57,3 +57,12 @@ func DatabasePath() string {
 	}
 	return BaseDir() + path
 }
+
+func ConfigValue(AParamName string) string {
+	value, err := Conf.String(AParamName)
+	if err != nil {
+		log.Fatal(err)
+		return ""
+	}
+	return value
+}

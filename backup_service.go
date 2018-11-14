@@ -55,7 +55,7 @@ func BackupFiles(test string) {
 
 func getBackupDirName() string {
 	t := time.Now()
-	return "FREE_HDD/Cookbook/" + t.Format("2006-01-02-15-04-05")
+	return ConfigValue("backup-ftp-folder") + t.Format("2006-01-02-15-04-05")
 }
 
 func BackupToFTP() {
@@ -96,11 +96,11 @@ func BackupToFTP() {
 }
 
 func connectToBackupServer() (*ftp.ServerConn, error) {
-	c, err := ftp.DialTimeout("192.168.0.254:21", 5*time.Second)
+	c, err := ftp.DialTimeout(ConfigValue("backup-ftp-server")+":21", 5*time.Second)
 	if err != nil {
 		log.Println(err)
 	}
-	err = c.Login("freebox", "freecook")
+	err = c.Login(ConfigValue("backup-ftp-login"), ConfigValue("backup-ftp-password"))
 	if err != nil {
 		log.Println(err)
 	}
