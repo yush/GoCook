@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/olebedev/config"
+	"github.com/spf13/viper"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,25 +10,16 @@ import (
 const dir_import = "db/images/import/"
 const dir_original = "db/images/original/"
 
-var Conf *config.Config
-var globalConf *config.Config
+var Config *viper.Viper
 
 func init() {
-	globalConf, errYml := config.ParseYamlFile(BaseDir() + "config.yml")
-	if errYml != nil {
-		log.Panic(errYml)
-	}
-
-	var err error
-	Conf, err = globalConf.Get("development")
-	if err != nil {
-		log.Panic(err)
-	}
+	Config = viper.New()
 }
 
-func SetTestMode() {
-	var err error
-	Conf, err = globalConf.Get("test")
+func LoadDefaultConf() {
+	Config.SetConfigName("config")
+	Config.AddConfigPath(".")
+	err := Config.ReadInConfig()
 	if err != nil {
 		log.Panic(err)
 	}
@@ -51,18 +42,11 @@ func BaseDir() string {
 }
 
 func DatabasePath() string {
-	path, err := Conf.String("database-path")
-	if err != nil {
-		log.Panic(err)
-	}
+	path := Config.GetString("database-path")
 	return BaseDir() + path
 }
 
 func ConfigValue(AParamName string) string {
-	value, err := Conf.String(AParamName)
-	if err != nil {
-		log.Fatal(err)
-		return ""
-	}
+	value := Config.GetString(AParamName)
 	return value
 }

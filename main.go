@@ -23,6 +23,7 @@ var sessions *SessionManagerMem
 var Sqlite3conn []*sqlite3.SQLiteConn
 
 func init() {
+
 	sql.Register("sqlite3_backup",
 		&sqlite3.SQLiteDriver{
 			ConnectHook: func(conn *sqlite3.SQLiteConn) error {
@@ -31,13 +32,14 @@ func init() {
 			},
 		})
 
-	loadTemplates()
 	sessions = new(SessionManagerMem)
 	sessions.Sessions = make(map[string]Session)
 }
 
 func main() {
 
+	LoadDefaultConf()
+	loadTemplates()
 	router := mux.NewRouter()
 
 	// login
