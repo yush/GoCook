@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/spf13/viper"
 	"log"
-	"os"
-	"path/filepath"
+	_ "os"
+	_ "path/filepath"
 )
 
 const dir_import = "db/images/import/"
@@ -34,11 +34,14 @@ func DirFileStorage() string {
 }
 
 func BaseDir() string {
-	ex, errEx := os.Executable()
-	if errEx != nil {
-		log.Panic(errEx)
-	}
-	return filepath.Dir(ex) + "/"
+	/*
+		ex, errEx := os.Executable()
+		if errEx != nil {
+			log.Panic(errEx)
+		}
+		return filepath.Dir(ex) + "/"
+	*/
+	return "./"
 }
 
 func DatabasePath() string {

@@ -1,21 +1,20 @@
 package main
 
 import (
-	_ "bufio"
-	_ "github.com/stretchr/testify/assert"
-	_ "image"
-	_ "log"
-	_ "os"
-	_ "os/exec"
-	_ "strings"
-	_ "testing"
+	"bufio"
+	"github.com/stretchr/testify/assert"
+	"image"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
 )
 
 func init() {
 	Config.Set("database-path", "/tests/db/gocook.test.db3")
 }
 
-/*
 func TestResizeRecipeLandscape(t *testing.T) {
 	imgIn := image.NewRGBA(image.Rect(0, 0, 2000, 200))
 	assert.Equal(t, image.Rect(0, 0, 2000, 200), imgIn.Bounds())
@@ -51,7 +50,6 @@ func destroyDatabase() {
 	os.Remove(DatabasePath())
 }
 
-
 func TestMain(m *testing.M) {
 	createDatabase()
 
@@ -60,7 +58,6 @@ func TestMain(m *testing.M) {
 	destroyDatabase()
 	os.Exit(ret)
 }
-
 
 func TestInsert(t *testing.T) {
 	db := getDb()
@@ -86,5 +83,3 @@ func TestUploadRecipe(t *testing.T) {
 	newRecipe := GetRecipe(db, newID)
 	assert.Equal(t, "recipe1", newRecipe.Name)
 }
-
-*/

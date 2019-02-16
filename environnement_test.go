@@ -7,6 +7,6 @@ import (
 func TestEnvironment(t *testing.T) {
 	Config.Set("path", "/home")
 	if Config.Get("path") != "/home" {
-		t.Error("test failed")
+		t.Error("Config loading failed")
 	}
 }
